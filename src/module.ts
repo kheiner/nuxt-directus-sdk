@@ -5,8 +5,9 @@ import type { Query } from '@directus/sdk'
 import type { ImportPresetWithDeprecation } from '@nuxt/schema'
 import type { DirectusSchema } from 'nuxt/app'
 import { name, version } from '../package.json'
-import { generateTypes } from './runtime/types'
 import { useUrl } from './runtime/utils'
+
+import { buildSchema, fetchDataModel, renderSchema } from './runtime/schema'
 
 export interface ModuleOptions {
   /**
@@ -288,12 +289,19 @@ export default defineNuxtModule<ModuleOptions>({
       try {
         const typesPath = addTypeTemplate({
           filename: `types/${configKey}.d.ts`,
-          getContents() {
-            return generateTypes({
-              url: useUrl(options.url),
-              token: options.adminToken!,
-              prefix: options.typePrefix ?? '',
+          async getContents() {
+            const dataModel = await fetchDataModel(useUrl(options.url), options.adminToken!)
+
+            const schemaObject = buildSchema(dataModel, {
+              nameTransform: 'database',
             })
+
+            const schemaDefinition = renderSchema(schemaObject, {
+              rootName: 'DirectusCollections',
+              indent: { amount: 4, char: ' ' },
+            })
+
+            return schemaDefinition
           },
         }).dst
 

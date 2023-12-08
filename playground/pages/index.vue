@@ -7,6 +7,11 @@ import { reactive, useDirectusAuth } from '#imports'
 
 const { user, login, loggedIn } = useDirectusAuth()
 
+const directus = useDirectus()
+
+const test = await directus.request(readItem('events', '', {
+}))
+
 const form = reactive({
   email: '',
   password: '',
