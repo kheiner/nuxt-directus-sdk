@@ -6,8 +6,8 @@ import { cleanDoubleSlashes } from 'ufo'
 const logger = useLogger('nuxt-directus-sdk')
 
 /**
- * Generate TypeScript types from Directus collections, fields, and relations
- * Uses @directus/sdk to fetch metadata directly - gives us proper optional/required detection
+ * Generate TypeScript types from Directus collections using directus-sdk-typegen
+ * Wraps the types in a declare global block for Nuxt compatibility
  */
 export async function generateTypes(options: GenerateOptions) {
   const rawTypes = await generateDirectusTypes({ directusUrl: cleanDoubleSlashes(options.url), directusToken: options.token })

@@ -125,13 +125,13 @@ export interface ModuleOptions {
 
   types?: boolean | {
     /**
-     * Generate types for your Directus instance
+     * Enable type generation
      * @type boolean
      * @default true
      */
     enabled?: boolean
     /**
-     * The prefix to your custom types
+     * Prefix for custom collection types (does not affect DirectusSchema keys)
      * @type string
      * @default ''
      */
