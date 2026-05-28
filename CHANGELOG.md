@@ -1,5 +1,17 @@
 # Changelog
 
+## v6.0.0
+
+[compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.0.0-beta.3...v6.0.0)
+
+### 🏡 Chore
+
+- Sync @directus/sdk & @directus/types peerDependency floor to devDependencies ([52bf92f](https://github.com/rolleyio/nuxt-directus-sdk/commit/52bf92f))
+
+### ❤️ Contributors
+
+- Kheiner <rolleyio@heiner.work>
+
 ## v6.0.0-beta.3
 
 [compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.0.0-beta.2...v6.0.0-beta.3)
