@@ -22,19 +22,29 @@ const { data: posts } = await useAsyncData('posts', () => {
 
 <template>
   <div>
-    <h1>View Blog Posts</h1>
-    <div
-      v-for="post in posts"
-      :key="post.id"
-    >
-      <NuxtLink :href="`/blog/${post.slug}`">
-        <h2>{{ post.title }}</h2>
-        <span>
-          <small>
-            {{ post.author?.first_name }} {{ post.author?.last_name }}</small>
-          - {{ post.published_at }}
-        </span>
-      </NuxtLink>
+    <h1 class="text-3xl font-bold mb-6">
+      View Blog Posts
+    </h1>
+    <div class="space-y-3">
+      <UCard
+        v-for="post in posts"
+        :key="post.id"
+        class="hover:ring-2 hover:ring-primary/40 transition"
+      >
+        <NuxtLink
+          :to="`/blog/${post.slug}`"
+          class="block"
+        >
+          <h2 class="text-lg font-semibold mb-1">
+            {{ post.title }}
+          </h2>
+          <div class="text-xs text-muted">
+            <strong>Author: {{ post.author?.first_name }} {{ post.author?.last_name }}</strong>
+            <span class="mx-1">//</span>
+            <span>Published: {{ post.published_at }}</span>
+          </div>
+        </NuxtLink>
+      </UCard>
     </div>
   </div>
 </template>

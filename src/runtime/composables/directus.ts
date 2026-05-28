@@ -15,18 +15,22 @@ export function useDirectusVisualEditor(): Ref<boolean> {
 
 function resolveClientUrl(): string {
   const config = useRuntimeConfig()
-  return (config.public.directus as any).directusUrl || config.public.directus.url
+  return config.public.directus.directusUrl || config.public.directus.url
 }
 
 function resolveServerUrl(): string {
   const config = useRuntimeConfig()
-  return (config as any).directus?.serverDirectusUrl || resolveClientUrl()
+  return config.directus?.serverDirectusUrl || resolveClientUrl()
 }
+
+// The module writes devProxy as a full object; the generated runtime-config.d.ts
+// collapses it to boolean. Cast to the actual shape so property access is safe.
+type DevProxyConfig = boolean | { enabled?: boolean, path?: string, wsPath?: string }
 
 export function useDirectusUrl(path = ''): string {
   const config = useRuntimeConfig()
 
-  const devProxy = config.public.directus.devProxy
+  const devProxy = config.public.directus.devProxy as DevProxyConfig
   const devProxyEnabled = typeof devProxy === 'object' ? devProxy.enabled === true : devProxy === true
 
   // When devProxy is enabled, use current origin + proxy path
@@ -73,23 +77,25 @@ function createDirectusClient() {
 
     // During SSR, forward cookies from the incoming request
     if (import.meta.server && requestHeaders?.cookie) {
+      // Bridge between RequestInit (browser fetch API) and $fetch (Nuxt/ofetch);
+      // the runtime shape is correct so we cast to satisfy the overload.
       return globalThis.$fetch(urlString, {
-        ...options as any, // $fetch will normalize the method for us
+        ...options,
         headers: {
-          ...options?.headers,
+          ...options?.headers as Record<string, string>,
           cookie: requestHeaders.cookie,
         },
-      })
+      } as never)
     }
 
     // On client, use regular fetch with credentials
-    return globalThis.$fetch(urlString, { ...options as any, credentials: 'include' })
+    return globalThis.$fetch(urlString, { ...options, credentials: 'include' } as never)
   }
 
   const baseUrl = useDirectusUrl()
 
   // Get WebSocket URL if devProxy is enabled
-  const devProxy = config.public.directus.devProxy
+  const devProxy = config.public.directus.devProxy as DevProxyConfig
   const devProxyWsUrl = devProxy && typeof devProxy === 'object' && devProxy.wsPath && import.meta.client
     ? `${window.location.origin}${devProxy.wsPath}`
     : undefined

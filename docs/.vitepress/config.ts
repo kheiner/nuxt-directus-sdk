@@ -4,13 +4,16 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Nuxt Directus SDK',
   description: 'The best way to integrate Directus with Nuxt - featuring authentication, realtime, file management, and more',
+  sitemap: {
+    hostname: 'https://www.nuxt-directus-sdk.com',
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/getting-started' },
       { text: 'API Reference', link: '/api/configuration/' },
-      { text: 'Changelog', link: '/changelog' },
+      { text: 'Changelog', link: 'https://github.com/rolleyio/nuxt-directus-sdk/releases' },
     ],
     sidebar: [
       {
@@ -27,6 +30,8 @@ export default defineConfig({
           { text: 'Realtime & WebSockets', link: '/guide/realtime' },
           { text: 'File Management', link: '/guide/files' },
           { text: 'Visual Editor', link: '/guide/visual-editor' },
+          { text: 'Type Generation', link: '/guide/type-generation' },
+          { text: 'Dev Proxy', link: '/guide/dev-proxy' },
           { text: 'Server-Side Utils', link: '/guide/server-side' },
         ],
       },
@@ -39,20 +44,30 @@ export default defineConfig({
         ],
       },
       {
+        text: 'CLI',
+        link: '/cli/',
+        items: [
+          { text: 'Type Generation', link: '/cli/generate-types' },
+          { text: 'Rules', link: '/cli/rules' },
+        ],
+      },
+      {
         text: 'API Reference',
         items: [
           {
-            text: 'Configuration', link: 'index',
+            text: 'Configuration',
+            link: 'index',
             collapsed: true,
             base: '/api/configuration/',
             items: [
               { text: 'Module Options', link: 'module' },
               { text: 'Environment Variables', link: 'env' },
               { text: 'Directus Server Configuration', link: 'server' },
-            ]
+            ],
           },
           {
-            text: 'Composables', link: 'index',
+            text: 'Composables',
+            link: 'index',
             collapsed: true,
             base: '/api/composables/',
             items: [
@@ -60,17 +75,7 @@ export default defineConfig({
               { text: 'Client', link: 'client' },
               { text: 'File', link: 'file' },
               { text: 'Storage', link: 'storage' },
-            ]
-          },
-          {
-            text: 'Components', link: 'index',
-            collapsed: true,
-            base: '/api/components/',
-            items: [
-              { text: 'Visual Editor', link: 'visual-editor' },
-              { text: 'Edit Button', link: 'edit-button' },
-              { text: 'Add Button', link: 'add-button' },
-            ]
+            ],
           },
         ],
       },
@@ -80,13 +85,13 @@ export default defineConfig({
     ],
     editLink: {
       pattern: 'https://github.com/rolleyio/nuxt-directus-sdk/edit/next/docs/:path',
-      text: 'Edit this page on GitHub'
+      text: 'Edit this page on GitHub',
     },
     lastUpdated: {
       formatOptions: {
         dateStyle: 'medium',
-      }
+      },
     },
-    externalLinkIcon: true
+    externalLinkIcon: true,
   },
 })

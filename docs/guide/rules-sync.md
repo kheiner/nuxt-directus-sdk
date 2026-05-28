@@ -4,7 +4,7 @@ Sync your locally-defined rules with remote Directus instances. Pull existing ru
 
 ## CLI
 
-The CLI is the quickest way to manage rules sync.
+The CLI is the quickest way to manage rules sync. What follows is a workflow walkthrough; see the [`rules:*` CLI reference](/cli/rules) for the full flag list on each command.
 
 ### Pull Rules
 
@@ -98,8 +98,8 @@ const rules = await pullRules(client)
 ```typescript
 import {
   compareRulesPayloads,
-  diffRules,
   diffRemoteRules,
+  diffRules,
   formatDiff,
   serializeToDirectusApi,
 } from 'nuxt-directus-sdk/rules'
@@ -126,7 +126,7 @@ const diff = await diffRemoteRules(stagingClient, productionClient)
 ### Pushing
 
 ```typescript
-import { pushRules, formatPushResult } from 'nuxt-directus-sdk/rules'
+import { formatPushResult, pushRules } from 'nuxt-directus-sdk/rules'
 
 const result = await pushRules(client, localRules, {
   // Only create, don't update or delete

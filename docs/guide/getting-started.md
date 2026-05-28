@@ -33,7 +33,7 @@ export default defineNuxtConfig({
 })
 ```
 ::: info
-View all module options in the [API Reference > Configuration](../api/configuration/#complete-configuration-example) page. 
+View all module options in the [API Reference > Configuration](../api/configuration/#complete-configuration-example) page.
 :::
 
 3. Add the following variables to the `.env` file in your nuxt project root:
@@ -45,7 +45,6 @@ DIRECTUS_ADMIN_TOKEN=admin_token_required_for_typegen
 
   - **`DIRECTUS_URL`** (required): Your Directus instance URL
   - **`DIRECTUS_ADMIN_TOKEN`** (optional): Admin token for type generation and `useAdminDirectus()` module.
-
 
 ## Directus Configuration
 
@@ -82,7 +81,6 @@ These configuration examples assume that you do not modify the default environme
 WEBSOCKETS_ENABLED=true
 ```
 
-
 ## Verify Installation
 
 Create a simple page to test the integration:
@@ -102,62 +100,9 @@ npx directus-template-cli@latest apply
 The template cli will attempt to merge with your existing content, but is not guaranteed to preserve anything. It is recommended that you use the cli on a fresh instance for testing as needed or modify the examples to work with your existing data structures.
 :::
 
-<!-- 
+<!--
 //TODO: Convert to snippets to avoid code replication and ability to edit in multiple places.
 -->
-
-## Development Proxy
-
-In development mode, the module automatically creates a proxy at `/directus` that forwards requests to your Directus instance. This eliminates CORS issues.
-
-You can configure the proxy:
-
-```typescript
-export default defineNuxtConfig({
-  directus: {
-    // Proxy configuration (optional)
-    devProxy: {
-      enabled: true,  // default: true in dev mode
-      path: '/directus',  // default: '/directus'
-    },
-  },
-})
-```
-
-The proxy automatically detects the host and port from Nuxt's dev server, including dynamic port changes.
-
-## Split URLs (Docker / Kubernetes)
-
-If your Nuxt server can reach Directus via an internal URL (e.g. Docker service name), you can configure separate client and server URLs:
-
-```typescript
-export default defineNuxtConfig({
-  directus: {
-    url: {
-      client: 'https://cms.example.com',    // Used by the browser
-      server: 'http://directus:8055',        // Used during SSR
-    },
-  },
-})
-```
-
-The `server` URL is only used during SSR and is never exposed to the browser. See the [Configuration Reference](/api/configuration/#url) for more details.
-
-## Type Generation
-
-The module automatically generates TypeScript types from your Directus schema. Make sure you have `DIRECTUS_ADMIN_TOKEN` set in your `.env` file.
-
-To disable type generation:
-
-```typescript
-export default defineNuxtConfig({
-  directus: {
-    types: {
-      enabled: false,
-    },
-  },
-})
-```
 
 ## Next Steps
 
@@ -167,5 +112,7 @@ Now that you're set up, explore the features:
 - [Realtime](/guide/realtime) - WebSocket connections and live updates
 - [File Management](/guide/files) - Upload and transform files
 - [Visual Editor](/guide/visual-editor) - Live preview and inline editing
+- [Type Generation](/guide/type-generation) - Auto-generated types from your Directus schema
+- [Dev Proxy](/guide/dev-proxy) - CORS-free local development
 - [Server-Side Utils](/guide/server-side) - Server routes and utilities
 - [Configuration Reference](/api/configuration/) - All configuration options

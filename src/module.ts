@@ -1,18 +1,20 @@
-import type { Query } from '@directus/sdk'
+import type { DirectusUser, Query } from '@directus/sdk'
 import type { ImageModifiers, ImageProviders } from '@nuxt/image'
-
 import type { InlinePreset } from 'unimport'
 
+import * as directusSdk from '@directus/sdk'
 import { addComponentsDir, addImportsDir, addImportsSources, addPlugin, addRouteMiddleware, addServerHandler, addTypeTemplate, createResolver, defineNuxtModule, hasNuxtModule, installModule, tryResolveModule, useLogger } from '@nuxt/kit'
 import { colors } from 'consola/utils'
 import { defu } from 'defu'
 import { joinURL } from 'ufo'
+import { readFileSync } from 'node:fs'
 import { name, version } from '../package.json'
-import { generateTypes } from './runtime/types'
+import { generateTypesFromDirectus } from './runtime/types'
 import { useUrl } from './runtime/utils'
+import { discoverSdkImports } from './sdk-imports'
 
 export type DirectusUrl = string | { client: string, server: string }
-export type ReadMeFields = Query<DirectusSchema, DirectusSchema['directus_users']>['fields']
+export type ReadMeFields = Query<DirectusSchema, DirectusUser<DirectusSchema>>['fields']
 
 export interface ModuleOptions {
   /**
@@ -176,6 +178,62 @@ export interface ModuleOptions {
      * @default ''
      */
     prefix?: string
+    /**
+     * Collection names to include in the generated types. When non-empty,
+     * only these collections (plus any they reference — see
+     * `expandReferences`) are emitted. References to collections not in
+     * the resolved set collapse to `string` (M2O) or `string[]` (O2M).
+     *
+     * Takes precedence over `exclude` if both are set.
+     * @type string[]
+     * @default []
+     */
+    include?: string[]
+    /**
+     * When `include` is set, also pull in any collections referenced by
+     * the included collections (transitively). Follows M2O, O2M, and M2A.
+     * No-op when `include` is empty.
+     * @type boolean
+     * @default true
+     */
+    expandReferences?: boolean
+    /**
+     * Collection names to exclude from generated types.
+     * References to excluded collections are rewritten to `string` (M2O) or
+     * `string[]` (O2M) so the generated types stay resolvable.
+     * @type string[]
+     * @default []
+     */
+    exclude?: string[]
+    /**
+     * When true, emit per-target warnings listing every field whose
+     * reference was collapsed to `string`/`string[]`. Field lists are
+     * capped at 5 per collection.
+     * @type boolean
+     * @default false
+     */
+    verbose?: boolean
+  }
+
+  /**
+   * Auto-import functions from `@directus/sdk`.
+   *
+   * - `true` (default) — auto-imports every SDK function except those wrapped by
+   *   this module (e.g. `createDirectus`, `rest`, `authentication`) or explicitly
+   *   unsupported (e.g. `graphql`, `readGraphqlSdl`).
+   * - `false` — disables auto-imports entirely. You import from `@directus/sdk`
+   *   manually wherever you use SDK functions.
+   * - `{ exclude: [...] }` — auto-imports with additional functions excluded.
+   *   Useful if an SDK function name collides with something else in your app.
+   *
+   * @default true
+   */
+  autoImportSdk?: boolean | {
+    /**
+     * Additional SDK function names to exclude from auto-import.
+     * Added on top of the module's built-in exclusions.
+     */
+    exclude?: string[]
   }
 }
 
@@ -202,6 +260,7 @@ export default defineNuxtModule<ModuleOptions>({
       enabled: true,
       prefix: '',
     },
+    autoImportSdk: true,
     auth: {
       enabled: true,
       enableGlobalAuthMiddleware: false,
@@ -217,23 +276,30 @@ export default defineNuxtModule<ModuleOptions>({
     },
   },
   async setup(options, nuxtApp) {
+    // set up array to send logs in messagebox
+    const loggerMessage: string[] = []
+
     // Resolve client and server URLs from the url option
     const clientUrl = typeof options.url === 'string' ? options.url : options.url?.client
     const serverUrl = typeof options.url === 'string' ? options.url : options.url?.server
 
     if (!clientUrl) {
-      logger.warn('No Directus URL found at build time. Set it in config options, .env file as DIRECTUS_URL, or at runtime via NUXT_PUBLIC_DIRECTUS_URL.')
+      loggerMessage.push(`⚠️ No Directus URL found at build time:`, `  - Set it in config options, .env file as DIRECTUS_URL or at runtime via NUXT_PUBLIC_DIRECTUS_URL.`, '')
     }
 
     const resolver = createResolver(import.meta.url)
+    const fallbackTypeContent = readFileSync(resolver.resolve('./runtime/types/fallback.d.ts'), 'utf-8')
 
     // Helper function to register modules
-    async function registerModule(name: string, key: string, moduleOptions: Record<string, any>) {
+    // NuxtOptions has no public index signature for module config keys.
+    async function registerModule(name: string, key: string, moduleOptions: Record<string, unknown>) {
       if (!hasNuxtModule(name)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await installModule(name, defu((nuxtApp.options as any)[key], moduleOptions))
       }
       else {
-        (nuxtApp.options as any)[key] = defu((nuxtApp.options as any)[key], moduleOptions)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(nuxtApp.options as any)[key] = defu((nuxtApp.options as any)[key], moduleOptions)
       }
     }
 
@@ -251,14 +317,11 @@ export default defineNuxtModule<ModuleOptions>({
     const wsProxyPath = devProxyConfig.wsPath ?? `${devProxyPath}-ws`
     const wsTarget = joinURL(directusUrl, 'websocket')
 
-    // Store the original URL for type generation and server-side use
-    const loggerMessage = []
-
     // Set up development proxy if enabled and in dev mode
     if (devProxyEnabled && nuxtApp.options.dev) {
-      loggerMessage.push(`🌐 Development mode:`)
-      loggerMessage.push(`URL${colors.dim(` ${devProxyPath}`)} proxies ${colors.underline(colors.green(`${directusUrl}`))}`)
-      loggerMessage.push(`WS URL${colors.dim(` ${wsProxyPath}`)} proxies ${colors.underline(colors.green(`${wsTarget}`))}`)
+      loggerMessage.push(`🌐 Development Proxy Mode Enabled:`)
+      loggerMessage.push(`  - URL${colors.dim(` ${devProxyPath}`)} proxies ${colors.underline(colors.green(`${directusUrl}`))}`)
+      loggerMessage.push(`  - WS URL${colors.dim(` ${wsProxyPath}`)} proxies ${colors.underline(colors.green(`${wsTarget}`))}`, '')
 
       // Configure WebSocket proxy for realtime support (WebSocket only)
       nuxtApp.options.nitro = nuxtApp.options.nitro || {}
@@ -281,14 +344,14 @@ export default defineNuxtModule<ModuleOptions>({
       })
 
       // Add error handling to the proxy
-      proxy.on('error', (err: any, _req: any, socket: any) => {
+      proxy.on('error', (err, _req, socket) => {
         logger.error(`WebSocket proxy error:`, err.message)
         if (socket && !socket.destroyed) {
           socket.end()
         }
       })
 
-      proxy.on('proxyReqWs', (proxyReq: any, req: any, _socket: any) => {
+      proxy.on('proxyReqWs', (proxyReq, req, _socket) => {
         // Rewrite the path from /_directus-ws to /websocket
         proxyReq.path = '/websocket'
 
@@ -303,14 +366,16 @@ export default defineNuxtModule<ModuleOptions>({
 
         // Replace the nuxt server upgrade handler with our WebSocket proxy
         if (nuxtApp.server) {
+          // nuxtApp.server.upgrade is not part of Nuxt's public type surface.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           nuxtApp.server.upgrade = (req: any, socket: any, head: any) => {
             // Check if this is our WebSocket proxy route
             if (req.url?.startsWith(wsProxyPath)) {
               try {
                 proxy.ws(req, socket, head)
               }
-              catch (err: any) {
-                logger.error('WebSocket proxy error:', err.message)
+              catch (error: unknown) {
+                logger.error('WebSocket proxy error:', error instanceof Error ? error.message : String(error))
                 if (!socket.destroyed) {
                   socket.destroy()
                 }
@@ -339,19 +404,29 @@ export default defineNuxtModule<ModuleOptions>({
         wsPath: wsProxyPath,
       }
     }
-    else if (!nuxtApp.options.dev) {
-      loggerMessage.push(`🌐 Production mode:`, ` SDK connects directly to ${colors.dim(`${directusUrl}`)}`)
+    else if (!nuxtApp.options.dev && directusUrl) {
+      loggerMessage.push(`🌐 Production Mode:`, `  - SDK connects directly to ${colors.dim(`${directusUrl}`)}`, '')
       options.devProxy = false
     }
 
-    (options as any).directusUrl = clientUrl
+    // directusUrl/serverDirectusUrl are injected onto options so Nuxt's type
+    // generation picks them up in runtimeConfig — ModuleOptions has no typed slot for them.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(options as any).directusUrl = clientUrl
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(options as any).serverDirectusUrl = serverUrl || clientUrl
 
+    // runtimeConfig is indexed by the module configKey which is not statically known.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     nuxtApp.options.runtimeConfig[configKey] = options as any
     nuxtApp.options.runtimeConfig.public = nuxtApp.options.runtimeConfig.public || {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     nuxtApp.options.runtimeConfig.public[configKey] = defu(nuxtApp.options.runtimeConfig.public[configKey] as any, options)
 
+    // Strip server-only fields before they reach the public runtime config.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (nuxtApp.options.runtimeConfig.public[configKey] as any).adminToken
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (nuxtApp.options.runtimeConfig.public[configKey] as any).serverDirectusUrl
 
     // Register @nuxt/image with Directus provider
@@ -376,6 +451,7 @@ export default defineNuxtModule<ModuleOptions>({
           modifiers,
         },
       })
+      loggerMessage.push('📷 Nuxt/Image default provider is set to Directus', '')
     }
 
     // Add plugin to load user before bootstrap
@@ -384,11 +460,22 @@ export default defineNuxtModule<ModuleOptions>({
     // Add visual editor plugin and components only when enabled AND @directus/visual-editing is installed
     const hasVisualEditing = options.visualEditor && await tryResolveModule('@directus/visual-editing', new URL(import.meta.url))
 
+    // Only register visual editor components when enabled and @directus/visual-editing is installed
     if (hasVisualEditing) {
       addPlugin(resolver.resolve('./runtime/plugins/visual-editor.client'))
+      addComponentsDir({
+        path: resolver.resolve('./runtime/components'),
+        pathPrefix: false,
+        prefix: '',
+        global: true,
+      })
+      loggerMessage.push('📝 Visual Editor Component Added', '')
     }
 
     // Add route middleware
+    if (options.auth?.enableGlobalAuthMiddleware) {
+      loggerMessage.push('🔒 Auth middleware installed globally.', '')
+    }
     addRouteMiddleware({
       name: 'auth',
       path: resolver.resolve('./runtime/middleware/auth'),
@@ -403,96 +490,50 @@ export default defineNuxtModule<ModuleOptions>({
     // Add composables
     addImportsDir(resolver.resolve('./runtime/composables'))
 
-    // Only register visual editor components when enabled and @directus/visual-editing is installed
-    if (hasVisualEditing) {
-      addComponentsDir({
-        path: resolver.resolve('./runtime/components'),
-        pathPrefix: false,
-        prefix: '',
-        global: true,
-      })
-    }
+    // autoImportSdk=false disables auto-imports entirely; the { exclude }
+    // shape adds user-provided names on top of the built-in exclusions.
+    const autoImportSdk = options.autoImportSdk ?? true
+    const userExclude = new Set(
+      typeof autoImportSdk === 'object' && autoImportSdk?.exclude
+        ? autoImportSdk.exclude
+        : [],
+    )
 
-    const directusSdkImports: InlinePreset = {
-      from: '@directus/sdk',
-      imports: [
-        'aggregate',
-        'generateUid',
-        'createComment',
-        'updateComment',
-        'deleteComment',
-        'createField',
-        'createItem',
-        'createItems',
-        'deleteField',
-        'deleteFile',
-        'deleteFiles',
-        'readActivities',
-        'readActivity',
-        'deleteItem',
-        'deleteItems',
-        'deleteUser',
-        'deleteUsers',
-        'importFile',
-        'readCollection',
-        'readCollections',
-        'createCollection',
-        'updateCollection',
-        'deleteCollection',
-        'readField',
-        'readFieldsByCollection',
-        'readFields',
-        'readFile',
-        'readFiles',
-        'readItem',
-        'readItems',
-        'readSingleton',
-        'readMe',
-        'createUser',
-        'createUsers',
-        'readUser',
-        'readUsers',
-        'readProviders',
-        'readFolder',
-        'readFolders',
-        'uploadFiles',
-        'updateField',
-        'updateFile',
-        'updateFiles',
-        'updateFolder',
-        'updateFolders',
-        'updateItem',
-        'updateItems',
-        'updateSingleton',
-        'updateMe',
-        'updateUser',
-        'updateUsers',
-        'withToken',
-      ],
-    }
+    const directusSdkImports: InlinePreset | null = autoImportSdk === false
+      ? null
+      : {
+          from: '@directus/sdk',
+          imports: discoverSdkImports(directusSdk as Record<string, unknown>, userExclude),
+        }
 
-    addImportsSources(directusSdkImports)
+    if (directusSdkImports) {
+      addImportsSources(directusSdkImports)
+    }
 
     nuxtApp.hook('nitro:config', (nitroConfig) => {
       nitroConfig.alias = nitroConfig.alias || {}
 
       nitroConfig.imports = nitroConfig.imports || {}
       nitroConfig.imports.presets = nitroConfig.imports.presets || []
-      nitroConfig.imports.presets.push(directusSdkImports)
+      if (directusSdkImports) {
+        nitroConfig.imports.presets.push(directusSdkImports)
+      }
       nitroConfig.imports.presets.push({
         from: resolver.resolve('./runtime/server/services'),
         imports: [
           'getDirectusSessionToken',
           'useAdminDirectus',
-          'useServerDirectus',
+          'useSessionDirectus',
           'useDirectusUrl',
           'useTokenDirectus',
         ],
       })
     })
-    loggerMessage.push(``)
+
     if (options.devtools) {
-      loggerMessage.push(`Directus Admin added to Nuxt DevTools`)
+      loggerMessage.push(`📦 Directus added to Nuxt DevTools`, '')
+      // 'devtools:customTabs' is a Nuxt DevTools hook not declared in core Nuxt hook types.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       nuxtApp.hook('devtools:customTabs' as any, (iframeTabs: any) => {
         iframeTabs.push({
           name: 'directus',
@@ -505,43 +546,58 @@ export default defineNuxtModule<ModuleOptions>({
         })
       })
     }
-    else {
-      loggerMessage.push(`${colors.dim(`  Directus Admin was not added to Nuxt DevTools`)}`)
-    }
 
     const typesEnabled = (typeof options.types === 'boolean' && options.types) || (options.types && options.types.enabled === true)
     const typesPrefix = typeof options.types === 'object' ? options.types.prefix ?? '' : ''
+    const typesInclude = typeof options.types === 'object' ? options.types.include ?? [] : []
+    const typesExpandReferences = typeof options.types === 'object' ? options.types.expandReferences ?? true : true
+    const typesExclude = typeof options.types === 'object' ? options.types.exclude ?? [] : []
+    const typesVerbose = typeof options.types === 'object' ? options.types.verbose ?? false : false
+
+    let typeString = fallbackTypeContent
 
     if (typesEnabled) {
+      loggerMessage.push('📋 Directus Type Generator Enabled')
+
       if (!options.adminToken) {
-        loggerMessage.push(``, `${colors.bgRedBright(`${colors.red('⚑ ERROR:')} Unable to generate Types`)}`, `  Fix: Set adminToken in config or DIRECTUS_ADMIN_TOKEN in .env`)
+        loggerMessage.push(`  ${colors.bgRedBright(`${colors.red('⚑ ERROR:')} Unable to generate Types`)}`, `   Fix: Set adminToken in config or DIRECTUS_ADMIN_TOKEN in .env`, `  - Fallback DirectusSchema is being used ${colors.dim('(not recommended)')}`)
       }
       else {
         try {
-          // Generate types once and cache the result
-          let cachedTypes: string | null = null
+          const { typeString: generated, logs } = await generateTypesFromDirectus(directusUrl, options.adminToken!, typesPrefix, {
+            include: typesInclude,
+            expandReferences: typesExpandReferences,
+            exclude: typesExclude,
+            verbose: typesVerbose,
+          })
+          loggerMessage.push(...logs)
 
-          addTypeTemplate({
-            filename: `types/${configKey}.d.ts`,
-            async getContents() {
-              if (!cachedTypes) {
-                // Use the original URL for type generation (not the proxy URL)
-                cachedTypes = await generateTypes({
-                  url: directusUrl,
-                  token: options.adminToken!,
-                  prefix: typesPrefix,
-                })
-              }
-              return cachedTypes
-            },
-          }, { nitro: true, nuxt: true })
-          loggerMessage.push(`${colors.dim(`  Directus Types saved successfully to #build/types/${configKey}.d.ts`)}`)
+          if (generated !== null) {
+            typeString = generated
+            if (!logs.some(log => log.toLowerCase().includes('error'))) {
+              loggerMessage.push(`  - Directus Types saved successfully to ${colors.dim(`#build/types/${configKey}.d.ts`)}`)
+            }
+            else {
+              throw new Error(`  ${colors.bgRedBright(`${colors.red('⚑ ERROR:')} TypeGenerator returned an error`)}`)
+            }
+          }
+          else {
+            loggerMessage.push(`  - Fallback DirectusSchema is being used ${colors.dim('(not recommended)')}`)
+          }
         }
         catch (error) {
-          logger.error((error as Error).message)
+          typeString = fallbackTypeContent
+          loggerMessage.push(`${error instanceof Error ? error.message : String(error)}`, `  - Fallback DirectusSchema is being used ${colors.dim('(not recommended)')}`)
         }
       }
     }
+
+    addTypeTemplate({
+      filename: `types/${configKey}.d.ts`,
+      getContents() {
+        return typeString
+      },
+    }, { nitro: true, nuxt: true })
     logger.box({ message: loggerMessage.join('\n'), title: `${colors.magenta(`Nuxt Directus SDK Version: ${colors.magentaBright(`${version}`)}`)}`, style: { padding: 3, borderColor: 'magenta', borderStyle: 'double-single-rounded' } })
   },
 })
