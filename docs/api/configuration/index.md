@@ -9,7 +9,6 @@ Complete reference for all nuxt-directus-sdk configuration options.
 ## Module Options
 <!--@include: ./module.md{7,}-->
 
-
 ## Environment Variables
 <!--@include: ./env.md{7,}-->
 
@@ -31,8 +30,8 @@ Generated types are available globally:
 ```typescript
 // Access generated types
 type Article = DirectusSchema['articles']
-type User = DirectusUsers
-type File = DirectusFiles
+type User = DirectusUser
+type File = DirectusFile
 
 // Use with Directus SDK
 const directus = useDirectus()

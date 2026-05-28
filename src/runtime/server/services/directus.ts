@@ -11,10 +11,9 @@ export function getDirectusSessionToken(event: H3Event): string | undefined {
 
 export function useDirectusUrl(path = ''): string {
   const config = useRuntimeConfig()
-  const serverUrl = (config as any).directus?.serverDirectusUrl
-  const fallback = (config.public.directus as any).directusUrl || config.public.directus.url
-  // eslint-disable-next-line node/prefer-global/process
-  const url = serverUrl || fallback || process.env.DIRECTUS_URL
+  const serverUrl = config.directus?.serverDirectusUrl
+  const fallback = config.public.directus.directusUrl || config.public.directus.url
+  const url = serverUrl || fallback || process.env.DIRECTUS_URL || ''
   return useUrl(url, path)
 }
 
@@ -29,14 +28,13 @@ export function useTokenDirectus(token?: string) {
   return directus
 }
 
-export function useServerDirectus(event: H3Event) {
-  // Get cookie header from the incoming request
+export function useSessionDirectus(event: H3Event) {
+  // Derive the client's auth from the session cookie on the incoming request.
   return useTokenDirectus(getDirectusSessionToken(event))
 }
 
 export function useAdminDirectus() {
   const config = useRuntimeConfig().directus
-  // eslint-disable-next-line node/prefer-global/process
   const adminToken = config.adminToken || process.env.DIRECTUS_ADMIN_TOKEN
 
   if (!adminToken)

@@ -12,15 +12,15 @@ Main authentication composable with methods and state for user authentication.
 
 ```typescript
 interface DirectusAuth {
-  user: Ref<DirectusUsers | null>
+  user: Ref<DirectusUser | null>
   loggedIn: ComputedRef<boolean>
-  readMe: () => Promise<DirectusUsers | null>
-  updateMe: (data: Partial<DirectusUsers>) => Promise<DirectusUsers | null>
-  login: (email: string, password: string, options?: LoginOptions & { redirect?: boolean | RouteLocationRaw }) => Promise<DirectusUsers | null>
+  readMe: () => Promise<DirectusUser | null>
+  updateMe: (data: UpdateMeInput) => Promise<DirectusUser>
+  login: (email: string, password: string, options?: LoginOptions & { redirect?: boolean | RouteLocationRaw }) => Promise<DirectusUser | null>
   loginWithProvider: (provider: string, redirectOnLogin?: boolean | string) => Promise<void>
   logout: (redirect?: boolean | RouteLocationRaw) => Promise<void>
-  createUser: (data: Partial<DirectusUsers>) => Promise<DirectusUsers>
-  register: (data: Partial<DirectusUsers>) => Promise<DirectusUsers>
+  createUser: (data: RegisterUserInput) => Promise<DirectusUser>
+  register: (data: RegisterUserInput) => Promise<DirectusUser>
   inviteUser: (email: string, role: string, inviteUrl?: string) => Promise<void>
   acceptUserInvite: (token: string, password: string) => Promise<void>
   passwordRequest: (email: string, resetUrl?: string) => Promise<void>
@@ -58,7 +58,7 @@ await logout()
 
 ##### `user`
 
-- **Type:** `Ref<DirectusUsers | null>`
+- **Type:** `Ref<DirectusUser | null>`
 - **Description:** Current authenticated user
 
 ```typescript
@@ -88,7 +88,7 @@ if (loggedIn.value) {
 
 Fetch the current user's data.
 
-**Returns:** `Promise<DirectusUsers | null>`
+**Returns:** `Promise<DirectusUser | null>`
 
 ```typescript
 const { readMe } = useDirectusAuth()
@@ -101,9 +101,9 @@ const user = await readMe()
 Update the current user's profile.
 
 **Parameters:**
-- `data: Partial<DirectusUsers>` - Fields to update
+- `data: UpdateMeInput` - Fields to update. `role` and `policies` are excluded to prevent privilege escalation. `avatar` accepts a pre-uploaded file ID (`string`), not a file object — upload the file first, then pass its ID here.
 
-**Returns:** `Promise<DirectusUsers | null>`
+**Returns:** `Promise<DirectusUser>`
 
 ```typescript
 const { updateMe } = useDirectusAuth()
@@ -111,8 +111,10 @@ const { updateMe } = useDirectusAuth()
 await updateMe({
   first_name: 'John',
   last_name: 'Doe',
-  avatar: 'file-uuid',
 })
+
+// To update avatar, first upload the file, then attach its ID
+await updateMe({ avatar: 'file-uuid' })
 ```
 
 ##### `login(email, password, options?)`
@@ -124,7 +126,7 @@ Login with email and password.
 - `password: string` - User password
 - `options?: LoginOptions & { redirect?: boolean | RouteLocationRaw }` - Login options
 
-**Returns:** `Promise<DirectusUsers | null>`
+**Returns:** `Promise<DirectusUser | null>`
 
 ```typescript
 const { login } = useDirectusAuth()
@@ -192,9 +194,9 @@ await logout('/login')
 Create a new user account. `register()` is an alias for `createUser()`.
 
 **Parameters:**
-- `data: Partial<DirectusUsers>` - User data
+- `data: RegisterUserInput` - User registration data
 
-**Returns:** `Promise<DirectusUsers>`
+**Returns:** `Promise<DirectusUser>`
 
 ```typescript
 const { register } = useDirectusAuth()
@@ -285,7 +287,7 @@ await passwordReset('reset-token', 'new-password')
 
 Direct access to the current user state.
 
-**Returns:** `Ref<DirectusUsers | null>`
+**Returns:** `Ref<DirectusUser | null>`
 
 ```typescript
 const user = useDirectusUser()
@@ -297,7 +299,8 @@ console.log(user.value?.first_name)
 watch(user, (newUser) => {
   if (newUser) {
     console.log('User logged in:', newUser.email)
-  } else {
+  }
+  else {
     console.log('User logged out')
   }
 })

@@ -16,8 +16,8 @@ export default defineNuxtConfig({
 })
 ```
 
->[!NOTE]
->::: details Module options automatically loaded into runtime config. `adminToken` is automatically excluded from public runtime config for security.
+>[!NOTE] Module options are automatically loaded into Nuxt RuntimeConfig().
+>::: details  `adminToken` is automatically excluded from public runtime config for security.
 >
 >
 >```typescript
@@ -29,7 +29,6 @@ export default defineNuxtConfig({
 >const config = useRuntimeConfig()
 >console.log(config.directus.adminToken)
 >```
-
 
 ::: details All Configuration Options
 
@@ -101,8 +100,8 @@ export default defineNuxtConfig({
 
     // Or split URLs for Docker/K8s
     url: {
-      client: 'https://cms.example.com',    // Browser requests
-      server: 'http://directus:8055',        // SSR / server-side requests
+      client: 'https://cms.example.com', // Browser requests
+      server: 'http://directus:8055', // SSR / server-side requests
     },
   },
 })
@@ -166,7 +165,7 @@ export default defineNuxtConfig({
     // Or detailed configuration
     devProxy: {
       enabled: true,
-      path: '/directus',      // HTTP proxy mount path
+      path: '/directus', // HTTP proxy mount path
       wsPath: '/directus-ws', // WebSocket proxy path (optional)
     },
   },
@@ -215,7 +214,6 @@ Enable visual editor capabilities. When enabled, the module:
 - Automatically detects when your site is loaded inside a Directus admin iframe
 - Renders `data-directus` attributes on `DirectusVisualEditor` components (only inside the iframe)
 - Applies the `@directus/visual-editing` SDK to enable inline editing
-- Shows `DirectusEditButton` and `DirectusAddButton` components (only inside the iframe)
 - Calls `refreshNuxtData()` when content is saved (no full page reload)
 
 ```typescript
@@ -226,7 +224,7 @@ export default defineNuxtConfig({
 })
 ```
 
-When disabled, `DirectusVisualEditor` renders as a pass-through wrapper with no attributes, and `DirectusEditButton`/`DirectusAddButton` are hidden.
+When disabled, `DirectusVisualEditor` renders as a pass-through wrapper with no attributes.
 
 Add `?debug` to any page URL to enable debug logging for the visual editor in the browser console. This is useful for diagnosing CSP issues, URL mismatches, and iframe detection on staging/production deployments.
 
@@ -291,9 +289,13 @@ See the [File Management Guide](/guide/files#using-with-nuxt-image) for more det
 
 ### Type Generation
 
+The module generates TypeScript types from your Directus schema at build time. Enabled by default when `DIRECTUS_ADMIN_TOKEN` is set.
+
+See the [Type Generation guide](/guide/type-generation) for what gets generated, the `prefix` option, and advanced filtering (`include` / `exclude` / `expandReferences` / `verbose`). The standalone CLI is documented on the [`generate-types` CLI page](/cli/generate-types).
+
 #### `types`
 
-- **Type:** `boolean | { enabled?: boolean, prefix?: string }`
+- **Type:** `boolean | { enabled?: boolean, prefix?: string, include?: string[], expandReferences?: boolean, exclude?: string[], verbose?: boolean }`
 - **Default:** `true`
 
 Enable/disable automatic type generation from your Directus schema.
@@ -313,8 +315,8 @@ When enabled, types are automatically generated and available globally:
 ```typescript
 // Access generated types
 type Article = DirectusSchema['articles']
-type User = DirectusUsers
-type File = DirectusFiles
+type User = DirectusUser
+type File = DirectusFile
 
 // Use with Directus SDK - fully typed!
 const directus = useDirectus()
@@ -331,54 +333,47 @@ export default defineNuxtConfig({
 })
 ```
 
-##### Type Prefix
+See the [Type Generation guide](/guide/type-generation) for:
 
-Add a prefix to your custom collection types to avoid naming conflicts:
+- [Type prefix](/guide/type-generation#type-prefix) to avoid naming conflicts
+- [Filtering collections<Badge type="warning" text="advanced" /> ](/guide/type-generation#filtering-collections) with `include` / `exclude` / `expandReferences` / `verbose`
+- [Manually Generating Types<Badge type="warning" text="advanced" />](/guide/type-generation#disabling) that work with the module
+- [Using the CLI](/guide/type-generation#generating-types-outside-a-nuxt-build) for on-demand generation
+
+### SDK Auto-Imports
+
+#### `autoImportSdk`
+
+- **Type:** `boolean | { exclude?: string[] }`
+- **Default:** `true`
+
+Controls whether the module auto-imports functions from `@directus/sdk`. By default every SDK function is auto-imported (minus a small list the module wraps or explicitly doesn't support — see [Composables > Auto-Imported Directus SDK Functions](/api/composables/#auto-imported-directus-sdk-functions)).
+
+**Disable entirely** — you'll need to `import { ... } from '@directus/sdk'` wherever you use them:
 
 ```typescript
 export default defineNuxtConfig({
   directus: {
-    types: {
-      enabled: true,
-      prefix: 'App', // Prefix custom collection types
+    autoImportSdk: false,
+  },
+})
+```
+
+**Exclude specific functions** — useful if an SDK function name collides with something else in your app:
+
+```typescript
+export default defineNuxtConfig({
+  directus: {
+    autoImportSdk: {
+      exclude: ['aggregate', 'customEndpoint'],
     },
   },
 })
 ```
 
-With a prefix, your generated types will be:
+Your `exclude` list is added to the module's built-in exclusions; you don't need to repeat `createDirectus`, `rest`, etc.
 
-```typescript
-// Custom collections are prefixed
-interface AppBlog {
-  id: string
-  title: string
-  content: string
-}
-
-interface AppAuthor {
-  id: string
-  name: string
-}
-
-// DirectusSchema keys remain unchanged (match API endpoints)
-interface DirectusSchema {
-  blogs: AppBlog[]
-  authors: AppAuthor[]
-}
-
-// Directus system collections are NOT prefixed
-interface DirectusUsers {
-  id: string
-  email: string
-}
-```
-
-**How it works:**
-- Custom collection interface names get prefixed (e.g., `Blog` → `AppBlog`)
-- DirectusSchema keys stay unchanged (e.g., `blogs`, `authors`) to match API endpoints
-- Directus system collections (e.g., `DirectusUsers`, `DirectusFiles`) are NOT prefixed
-- All type references are updated to use the prefixed names
+Tree-shaking means disabling auto-imports has no bundle-size benefit for end users — unused SDK functions don't ship regardless. The option exists for collisions and for teams that prefer explicit imports.
 
 ### Authentication Options
 
@@ -529,9 +524,9 @@ export default defineNuxtConfig({
   directus: {
     auth: {
       redirect: {
-        home: '/',                  // After login
-        login: '/auth/login',    // When not authenticated
-        logout: '/',                // After logout
+        home: '/', // After login
+        login: '/auth/login', // When not authenticated
+        logout: '/', // After logout
       },
     },
   },

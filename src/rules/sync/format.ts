@@ -2,7 +2,7 @@
  * Formatting utilities for diff output
  */
 
-import type { DiffChange, PermissionDiffChange, RulesDiff } from './types'
+import type { PermissionDiffChange, PolicyDiffChange, RoleDiffChange, RulesDiff } from './types'
 
 /**
  * Format diff as human-readable string (git-style)
@@ -97,7 +97,7 @@ function formatSummaryLine(
 /**
  * Format a role change
  */
-function formatRoleChange(lines: string[], change: DiffChange<any>): void {
+function formatRoleChange(lines: string[], change: RoleDiffChange): void {
   const prefix = changePrefix(change.type)
   lines.push(`${prefix} Role: ${change.name}`)
 
@@ -114,7 +114,7 @@ function formatRoleChange(lines: string[], change: DiffChange<any>): void {
 /**
  * Format a policy change
  */
-function formatPolicyChange(lines: string[], change: DiffChange<any>): void {
+function formatPolicyChange(lines: string[], change: PolicyDiffChange): void {
   const prefix = changePrefix(change.type)
   lines.push(`${prefix} Policy: ${change.name}`)
 
@@ -162,7 +162,7 @@ function changePrefix(type: string): string {
  */
 function formatAddedFields(
   lines: string[],
-  item: Record<string, unknown>,
+  item: object,
   excludeKeys: string[],
 ): void {
   for (const [key, value] of Object.entries(item)) {
@@ -178,20 +178,21 @@ function formatAddedFields(
 /**
  * Format field-level changes for a modified item
  */
-function formatModifiedFields(
+function formatModifiedFields<T extends object>(
   lines: string[],
-  local: Record<string, unknown>,
-  remote: Record<string, unknown>,
+  local: T,
+  remote: T,
   excludeKeys: string[],
 ): void {
   const allKeys = new Set([...Object.keys(local), ...Object.keys(remote)])
-
+  const localRec = local as Record<string, unknown>
+  const remoteRec = remote as Record<string, unknown>
   for (const key of allKeys) {
     if (excludeKeys.includes(key))
       continue
 
-    const localVal = local[key]
-    const remoteVal = remote[key]
+    const localVal = localRec[key]
+    const remoteVal = remoteRec[key]
 
     if (!valuesEqual(localVal, remoteVal)) {
       lines.push(`  ${key}:`)
