@@ -4,6 +4,7 @@
 [![npm downloads][npm-downloads-src]][npm-downloads-href]
 [![CI][ci-src]][ci-href]
 [![Install size][install-size-src]][install-size-href]
+[![Nuxt Care][nuxt-care-src]][nuxt-care-href]
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
@@ -135,6 +136,9 @@ Contributions are welcome. Please target the `next` branch for new features and 
 
 [install-size-src]: https://packagephobia.com/badge?p=nuxt-directus-sdk
 [install-size-href]: https://packagephobia.com/result?p=nuxt-directus-sdk
+
+[nuxt-care-src]: https://img.shields.io/endpoint?url=https%3A%2F%2Fnuxt.care%2Fapi%2Fv1%2Fbadge%3Fpackage%3Dnuxt-directus-sdk
+[nuxt-care-href]: https://nuxt.care/package/nuxt-directus-sdk
 
 [license-src]: https://img.shields.io/npm/l/nuxt-directus-sdk.svg?style=flat&colorA=18181B&colorB=28CF8D
 [license-href]: https://npmjs.com/package/nuxt-directus-sdk
