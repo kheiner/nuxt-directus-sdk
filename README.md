@@ -138,7 +138,7 @@ Contributions are welcome. Please target the `next` branch for new features and 
 [install-size-href]: https://packagephobia.com/result?p=nuxt-directus-sdk
 
 [nuxt-care-src]: https://img.shields.io/endpoint?url=https%3A%2F%2Fnuxt.care%2Fapi%2Fv1%2Fbadge%3Fpackage%3Dnuxt-directus-sdk
-[nuxt-care-href]: https://nuxt.care/package/nuxt-directus-sdk
+[nuxt-care-href]: https://nuxt.care/?search=nuxt-directus-sdk
 
 [license-src]: https://img.shields.io/npm/l/nuxt-directus-sdk.svg?style=flat&colorA=18181B&colorB=28CF8D
 [license-href]: https://npmjs.com/package/nuxt-directus-sdk
