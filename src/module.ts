@@ -28,25 +28,36 @@ export interface ModuleOptions {
   url: DirectusUrl
 
   /**
-   * Development proxy configuration
-   * When enabled, creates a proxy at /directus that forwards to your Directus URL
-   * This solves CORS and cookie issues in development
-   * @default { enabled: true, path: '/directus', wsPath: '/directus-ws' } in dev mode
+   * Proxy configuration. When enabled, creates a Nitro server handler at
+   * `path` that forwards HTTP requests to your Directus URL — useful for
+   * cookie-scope (login on the same origin) and CORS workarounds.
+   *
+   * - Defaults to on in dev, off in production.
+   * - Setting `true` (or `{ enabled: true }`) explicitly turns the HTTP
+   *   proxy on in production too.
+   * - The WebSocket proxy (for realtime) is dev-only — it relies on the
+   *   dev-server's upgrade hook which doesn't exist in production builds.
+   *   When the HTTP proxy is on in production, realtime connects directly
+   *   to Directus, so realtime auth still requires same-domain cookies
+   *   (or a public `realtimeAuthMode`).
+   *
+   * @default { enabled: <isDev>, path: '/directus', wsPath: '/directus-ws' (dev only) }
    * @type boolean | { enabled?: boolean, path?: string, wsPath?: string }
    */
   devProxy?: boolean | {
     /**
-     * Enable the development proxy
-     * @default true in dev mode, false in production
+     * Enable the proxy. Defaults to true in dev, false in production.
+     * Explicitly setting `true` enables HTTP proxying in production too.
      */
     enabled?: boolean
     /**
-     * Proxy path (where the proxy will be mounted)
+     * HTTP proxy path (where the Nitro server handler is mounted).
      * @default '/directus'
      */
     path?: string
     /**
-     * WebSocket proxy path (for realtime connections)
+     * WebSocket proxy path (for realtime connections). Dev-mode only —
+     * ignored in production builds.
      * @default '/directus-ws'
      */
     wsPath?: string
@@ -317,94 +328,113 @@ export default defineNuxtModule<ModuleOptions>({
     const wsProxyPath = devProxyConfig.wsPath ?? `${devProxyPath}-ws`
     const wsTarget = joinURL(directusUrl, 'websocket')
 
-    // Set up development proxy if enabled and in dev mode
-    if (devProxyEnabled && nuxtApp.options.dev) {
-      loggerMessage.push(`🌐 Development Proxy Mode Enabled:`)
+    // Proxy resolution:
+    // - HTTP proxy: works in dev and production (Nitro server handler)
+    // - WebSocket proxy: dev only — the upgrade hook below relies on
+    //   nuxtApp.server.upgrade, which exists only in the dev orchestrator.
+    //
+    // Default (devProxyConfig.enabled === undefined): on in dev, off in prod.
+    // Explicit `true`: on in both (HTTP only in prod, with a warning).
+    // Explicit `false`: off in both.
+    const isDev = nuxtApp.options.dev
+
+    if (devProxyEnabled) {
+      const headerLabel = isDev ? '🌐 Development Proxy Mode Enabled:' : '🌐 Proxy Mode Enabled (production):'
+      loggerMessage.push(headerLabel)
       loggerMessage.push(`  - URL${colors.dim(` ${devProxyPath}`)} proxies ${colors.underline(colors.green(`${directusUrl}`))}`)
-      loggerMessage.push(`  - WS URL${colors.dim(` ${wsProxyPath}`)} proxies ${colors.underline(colors.green(`${wsTarget}`))}`, '')
 
-      // Configure WebSocket proxy for realtime support (WebSocket only)
-      nuxtApp.options.nitro = nuxtApp.options.nitro || {}
-      nuxtApp.options.nitro.devProxy = nuxtApp.options.nitro.devProxy || {}
-
-      nuxtApp.options.nitro.devProxy[wsProxyPath] = {
-        target: directusUrl,
-        changeOrigin: true,
-        ws: true,
-      }
-
-      // Set up WebSocket proxy handler using http-proxy
-      // Point to the base Directus URL, we'll rewrite the path in the proxy
-      const httpProxy = await import('http-proxy')
-      const proxy = httpProxy.default.createProxyServer({
-        target: directusUrl,
-        changeOrigin: true,
-        ws: true,
-        secure: false, // Allow self-signed certificates
-      })
-
-      // Add error handling to the proxy
-      proxy.on('error', (err, _req, socket) => {
-        logger.error(`WebSocket proxy error:`, err.message)
-        if (socket && !socket.destroyed) {
-          socket.end()
-        }
-      })
-
-      proxy.on('proxyReqWs', (proxyReq, req, _socket) => {
-        // Rewrite the path from /_directus-ws to /websocket
-        proxyReq.path = '/websocket'
-
-        // Forward cookies for authentication
-        if (req.headers.cookie) {
-          proxyReq.setHeader('cookie', req.headers.cookie)
-        }
-      })
-
-      nuxtApp.hook('ready', () => {
-        const originalUpgrade = nuxtApp.server?.upgrade
-
-        // Replace the nuxt server upgrade handler with our WebSocket proxy
-        if (nuxtApp.server) {
-          // nuxtApp.server.upgrade is not part of Nuxt's public type surface.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          nuxtApp.server.upgrade = (req: any, socket: any, head: any) => {
-            // Check if this is our WebSocket proxy route
-            if (req.url?.startsWith(wsProxyPath)) {
-              try {
-                proxy.ws(req, socket, head)
-              }
-              catch (error: unknown) {
-                logger.error('WebSocket proxy error:', error instanceof Error ? error.message : String(error))
-                if (!socket.destroyed) {
-                  socket.destroy()
-                }
-              }
-            }
-            else if (originalUpgrade) {
-              return originalUpgrade(req, socket, head)
-            }
-            else if (!socket.destroyed) {
-              socket.destroy()
-            }
-          }
-        }
-      })
-
-      // Add HTTP handler for regular requests
+      // HTTP proxy server handler — works in dev and production builds.
       addServerHandler({
         route: `${devProxyPath}/**`,
         handler: resolver.resolve('./runtime/server/routes/directus'),
       })
 
-      // Store normalized devProxy config for runtime use
+      if (isDev) {
+        loggerMessage.push(`  - WS URL${colors.dim(` ${wsProxyPath}`)} proxies ${colors.underline(colors.green(`${wsTarget}`))}`, '')
+
+        // Configure WebSocket proxy for realtime support (WebSocket only).
+        // Nitro's devProxy is dev-server only; intentionally skipped in prod.
+        nuxtApp.options.nitro = nuxtApp.options.nitro || {}
+        nuxtApp.options.nitro.devProxy = nuxtApp.options.nitro.devProxy || {}
+
+        nuxtApp.options.nitro.devProxy[wsProxyPath] = {
+          target: directusUrl,
+          changeOrigin: true,
+          ws: true,
+        }
+
+        // Set up WebSocket proxy handler using http-proxy
+        // Point to the base Directus URL, we'll rewrite the path in the proxy
+        const httpProxy = await import('http-proxy')
+        const proxy = httpProxy.default.createProxyServer({
+          target: directusUrl,
+          changeOrigin: true,
+          ws: true,
+          secure: false, // Allow self-signed certificates
+        })
+
+        // Add error handling to the proxy
+        proxy.on('error', (err, _req, socket) => {
+          logger.error(`WebSocket proxy error:`, err.message)
+          if (socket && !socket.destroyed) {
+            socket.end()
+          }
+        })
+
+        proxy.on('proxyReqWs', (proxyReq, req, _socket) => {
+          // Rewrite the path from /_directus-ws to /websocket
+          proxyReq.path = '/websocket'
+
+          // Forward cookies for authentication
+          if (req.headers.cookie) {
+            proxyReq.setHeader('cookie', req.headers.cookie)
+          }
+        })
+
+        nuxtApp.hook('ready', () => {
+          const originalUpgrade = nuxtApp.server?.upgrade
+
+          // Replace the nuxt server upgrade handler with our WebSocket proxy
+          if (nuxtApp.server) {
+            // nuxtApp.server.upgrade is not part of Nuxt's public type surface.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            nuxtApp.server.upgrade = (req: any, socket: any, head: any) => {
+              // Check if this is our WebSocket proxy route
+              if (req.url?.startsWith(wsProxyPath)) {
+                try {
+                  proxy.ws(req, socket, head)
+                }
+                catch (error: unknown) {
+                  logger.error('WebSocket proxy error:', error instanceof Error ? error.message : String(error))
+                  if (!socket.destroyed) {
+                    socket.destroy()
+                  }
+                }
+              }
+              else if (originalUpgrade) {
+                return originalUpgrade(req, socket, head)
+              }
+              else if (!socket.destroyed) {
+                socket.destroy()
+              }
+            }
+          }
+        })
+      }
+      else {
+        loggerMessage.push(`  - ${colors.yellow('WebSocket proxy is disabled in production')} — connect realtime directly to ${colors.dim(`${wsTarget}`)}`, '')
+      }
+
+      // Store normalized devProxy config for runtime use.
+      // wsPath is only meaningful when the WS proxy is actually registered (dev),
+      // so leave it undefined in production builds.
       options.devProxy = {
         enabled: true,
         path: devProxyPath,
-        wsPath: wsProxyPath,
+        wsPath: isDev ? wsProxyPath : undefined,
       }
     }
-    else if (!nuxtApp.options.dev && directusUrl) {
+    else if (!isDev && directusUrl) {
       loggerMessage.push(`🌐 Production Mode:`, `  - SDK connects directly to ${colors.dim(`${directusUrl}`)}`, '')
       options.devProxy = false
     }

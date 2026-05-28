@@ -94,14 +94,26 @@ function createDirectusClient() {
 
   const baseUrl = useDirectusUrl()
 
-  // Get WebSocket URL if devProxy is enabled
+  // Resolve the realtime WebSocket URL.
+  //
+  // - Dev with WS proxy: use the proxy path on the current origin.
+  // - HTTP proxy on but no WS proxy (production): point realtime directly at
+  //   the real Directus URL — the HTTP proxy can't carry WebSocket upgrades.
+  // - No proxy: omit, let the SDK default (baseUrl + /websocket).
   const devProxy = config.public.directus.devProxy as DevProxyConfig
-  const devProxyWsUrl = devProxy && typeof devProxy === 'object' && devProxy.wsPath && import.meta.client
-    ? `${window.location.origin}${devProxy.wsPath}`
-    : undefined
+  const devProxyEnabled = typeof devProxy === 'object' ? devProxy.enabled === true : devProxy === true
+  const devProxyWsPath = typeof devProxy === 'object' ? devProxy.wsPath : undefined
 
-  // In dev mode with proxy, use the separate WebSocket proxy path
-  // Otherwise, let the SDK use the default (baseUrl + /websocket)
+  let realtimeUrl: string | undefined
+  if (devProxyWsPath && import.meta.client) {
+    realtimeUrl = `${window.location.origin}${devProxyWsPath}`
+  }
+  else if (devProxyEnabled && import.meta.client) {
+    // Production proxy mode: realtime bypasses the proxy and connects directly.
+    const directUrl = resolveClientUrl()
+    realtimeUrl = directUrl ? `${directUrl.replace(/^http/, 'ws').replace(/\/$/, '')}/websocket` : undefined
+  }
+
   const directus = createDirectus<DirectusSchema>(baseUrl, {
     globals: {
       fetch: customFetch,
@@ -118,8 +130,7 @@ function createDirectusClient() {
     }))
     .with(realtime({
       authMode: authConfig.realtimeAuthMode as WebSocketAuthModes || 'public',
-      // Only set custom URL if we have a proxy path (dev mode with proxy enabled)
-      ...(devProxyWsUrl ? { url: devProxyWsUrl } : {}),
+      ...(realtimeUrl ? { url: realtimeUrl } : {}),
     }))
 
   return directus

@@ -86,9 +86,30 @@ Or disable just the WebSocket proxy by leaving `enabled: true` and setting `wsPa
 
 ## Production Behaviour
 
-In production builds, the proxy is off by default and all requests go directly to the `client` URL from the browser. This is what you want: no extra hop, no Nuxt server involvement for Directus calls. Cookie domains need to match (either same apex domain or configured correctly) for session auth to work; see the [Authentication guide](/guide/authentication) for the cross-domain setup.
+In production builds the proxy is off by default and all requests go directly to the `client` URL from the browser. This is what most users want: no extra hop, no Nuxt server involvement on every Directus call. For this to work with session auth, cookie domains have to match — either same apex domain or configured correctly. See the [Authentication guide](/guide/authentication) for the cross-domain setup.
 
-You can force the proxy on in production with `devProxy: { enabled: true }`, but this is unusual and generally not recommended; the proxy adds a hop every call makes through your Nuxt server.
+### Enabling the proxy in production
+
+Sometimes the direct-from-browser route doesn't work. The most common case is hosting Directus on a different domain than your Nuxt app where you can't (or don't want to) deal with cross-domain cookies — third-party cookie restrictions in modern browsers make this increasingly fragile, especially in staging environments. Turning the proxy on in production puts the session cookie back on your own origin:
+
+```ts
+export default defineNuxtConfig({
+  directus: {
+    url: process.env.NUXT_PUBLIC_DIRECTUS_URL,
+    devProxy: { enabled: true }, // or just `devProxy: true`
+  },
+})
+```
+
+With this set, the module registers a Nitro server handler at `/directus/**` in your production build that forwards HTTP requests to Directus, preserving cookies on your own domain.
+
+**Trade-offs to know about:**
+
+- **Extra hop on every Directus call.** Browser → your Nuxt server → Directus instead of browser → Directus. Negligible for occasional calls like login; can add up on data-heavy pages.
+- **WebSocket proxy is dev-only.** The realtime proxy uses the Nuxt dev-server's upgrade hook, which doesn't exist in production builds. If you turn the HTTP proxy on in production, realtime connects directly to Directus instead — which means realtime is still subject to the original cross-domain cookie problem if you're using `realtimeAuthMode: 'handshake'` or `'strict'`. For `'public'` realtime (no auth), this is fine.
+- **Serverless caveats.** On platforms like Vercel functions or Netlify functions, the HTTP proxy works (regular request/response). WebSocket proxying wouldn't work even if we could enable it — those runtimes don't hold persistent connections.
+
+If you need realtime with auth in production-with-proxy, the cleanest answer is usually to put Directus on a subdomain of your app (`api.example.com` and `app.example.com`) with `SESSION_COOKIE_DOMAIN=.example.com`, so cookies are shared without proxying.
 
 ## See Also
 
