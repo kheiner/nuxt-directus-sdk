@@ -1,0 +1,32 @@
+name: Preview packages (pkg.pr.new)
+
+on:
+  pull_request:
+  push:
+    branches: [next]
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # nuxt-module-build extends playground/.nuxt/tsconfig.json, so the
+      # playground has to be prepared before the package can be built.
+      - run: pnpm run dev:prepare
+
+      - run: pnpm run prepack
+
+      - run: pnpm dlx pkg-pr-new publish
