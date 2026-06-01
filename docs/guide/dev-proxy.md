@@ -111,6 +111,36 @@ With this set, the module registers a Nitro server handler at `/directus/**` in 
 
 If you need realtime with auth in production-with-proxy, the cleanest answer is usually to put Directus on a subdomain of your app (`api.example.com` and `app.example.com`) with `SESSION_COOKIE_DOMAIN=.example.com`, so cookies are shared without proxying.
 
+## Client IP & `IP_TRUST_PROXY`
+
+When the proxy is on, every request reaches Directus from your **Nuxt server's** IP. The connection is Nuxt to Directus, not browser to Directus. The real client IP travels in the `X-Forwarded-For` header, and the proxy sets it to a single, resolved value rather than blindly forwarding whatever the browser sent. This matters only if your Directus instance uses an IP-based feature:
+
+- Role/policy **IP allow-lists** (`ip_access`)
+- **Per-IP rate limiting** (`RATE_LIMITER_*`)
+- The client IP recorded in the **activity / audit log**
+
+For Directus to read that header it has to trust the proxy, which it controls with `IP_TRUST_PROXY`:
+
+- **Directus 11 and earlier** defaulted to `IP_TRUST_PROXY=true`; it trusts `X-Forwarded-For` out of the box, so the proxy "just worked".
+- **Directus 12+** changed the default to `false` to harden against IP spoofing ([directus#27607](https://github.com/directus/directus/pull/27607)). With the new default, Directus ignores `X-Forwarded-For`, so every proxied request looks like it came from your Nuxt server.
+
+If you run the proxy **and** rely on client IPs on Directus 12+, set it to trust exactly one hop, the SDK proxy:
+
+```bash
+# Directus .env
+IP_TRUST_PROXY=1
+```
+
+Prefer the hop count (`1`) over a blanket `true`. The SDK proxy already strips the attacker-controllable inbound header and forwards a single clean entry, so trusting one hop gives you the real client IP without re-opening the spoofing hole that `true` is prone to. If you stack another proxy in front of your Nuxt app (e.g. Cloudflare → Nuxt → Directus), increase the count to match.
+
+::: tip Direct mode is unaffected
+This section only applies when the proxy is enabled. With `devProxy: false`, browsers talk to Directus directly and it sees the real client IP from the connection itself; `IP_TRUST_PROXY` then only concerns whatever proxy sits in front of Directus.
+:::
+
+::: warning Resolution is only as trustworthy as your edge
+The proxy resolves the client IP from the request reaching your Nuxt server. If Nuxt is exposed directly to the internet with no trusted edge in front of it, that value can itself be spoofed. Configure your platform / Nitro trust settings so the incoming IP is trustworthy before relying on it downstream.
+:::
+
 ## See Also
 
 - [Module option: `devProxy`](/api/configuration/module#devproxy)
