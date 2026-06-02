@@ -16,6 +16,28 @@ import { discoverSdkImports } from './sdk-imports'
 export type DirectusUrl = string | { client: string, server: string }
 export type ReadMeFields = Query<DirectusSchema, DirectusUser<DirectusSchema>>['fields']
 
+/**
+ * Shape of the `proxy` (and deprecated `devProxy`) module option.
+ */
+export type ProxyOption = boolean | {
+  /**
+   * Enable the proxy. Defaults to true in dev, false in production.
+   * Explicitly setting `true` enables HTTP proxying in production too.
+   */
+  enabled?: boolean
+  /**
+   * HTTP proxy path (where the Nitro server handler is mounted).
+   * @default '/directus'
+   */
+  path?: string
+  /**
+   * WebSocket proxy path (for realtime connections). Dev-mode only;
+   * ignored in production builds.
+   * @default '/directus-ws'
+   */
+  wsPath?: string
+}
+
 export interface ModuleOptions {
   /**
    * Directus API URL
@@ -29,13 +51,13 @@ export interface ModuleOptions {
 
   /**
    * Proxy configuration. When enabled, creates a Nitro server handler at
-   * `path` that forwards HTTP requests to your Directus URL — useful for
+   * `path` that forwards HTTP requests to your Directus URL. Useful for
    * cookie-scope (login on the same origin) and CORS workarounds.
    *
    * - Defaults to on in dev, off in production.
    * - Setting `true` (or `{ enabled: true }`) explicitly turns the HTTP
    *   proxy on in production too.
-   * - The WebSocket proxy (for realtime) is dev-only — it relies on the
+   * - The WebSocket proxy (for realtime) is dev-only; it relies on the
    *   dev-server's upgrade hook which doesn't exist in production builds.
    *   When the HTTP proxy is on in production, realtime connects directly
    *   to Directus, so realtime auth still requires same-domain cookies
@@ -44,24 +66,14 @@ export interface ModuleOptions {
    * @default { enabled: <isDev>, path: '/directus', wsPath: '/directus-ws' (dev only) }
    * @type boolean | { enabled?: boolean, path?: string, wsPath?: string }
    */
-  devProxy?: boolean | {
-    /**
-     * Enable the proxy. Defaults to true in dev, false in production.
-     * Explicitly setting `true` enables HTTP proxying in production too.
-     */
-    enabled?: boolean
-    /**
-     * HTTP proxy path (where the Nitro server handler is mounted).
-     * @default '/directus'
-     */
-    path?: string
-    /**
-     * WebSocket proxy path (for realtime connections). Dev-mode only —
-     * ignored in production builds.
-     * @default '/directus-ws'
-     */
-    wsPath?: string
-  }
+  proxy?: ProxyOption
+
+  /**
+   * @deprecated Use `proxy` instead. `devProxy` is kept as an alias for
+   * backwards compatibility and will be removed in a future major release.
+   * If both are set, `proxy` wins and `devProxy` is ignored with a warning.
+   */
+  devProxy?: ProxyOption
 
   /**
    * Admin Auth Token used for generating types and server functions
@@ -262,7 +274,8 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     url: import.meta.env.DIRECTUS_URL ?? '',
-    devProxy: undefined, // Will be set based on dev mode in setup
+    proxy: undefined, // Resolved in setup based on dev mode and the deprecated `devProxy` alias.
+    devProxy: undefined,
     adminToken: import.meta.env.DIRECTUS_ADMIN_TOKEN ?? '',
     devtools: true,
     visualEditor: true,
@@ -314,38 +327,57 @@ export default defineNuxtModule<ModuleOptions>({
       }
     }
 
-    // Normalize devProxy options
-    const devProxyConfig = typeof options.devProxy === 'boolean'
-      ? { enabled: options.devProxy }
-      : { ...options.devProxy }
+    // Resolve the proxy option. `proxy` is the canonical name; `devProxy` is
+    // kept as a deprecated alias.
+    //  - If `proxy` is set, use it (and warn if `devProxy` was also set).
+    //  - If only `devProxy` is set, hoist it and emit a deprecation warning.
+    //  - If neither is set, fall through to the default (on in dev, off in prod).
+    if (options.proxy !== undefined && options.devProxy !== undefined) {
+      logger.warn(
+        'Both `proxy` and `devProxy` are set in directus module config. `proxy` wins; `devProxy` is ignored. Remove the deprecated `devProxy` entry.',
+      )
+    }
+    else if (options.proxy === undefined && options.devProxy !== undefined) {
+      logger.warn(
+        '`directus.devProxy` is deprecated and will be removed in a future major release. Rename it to `directus.proxy`.',
+      )
+      options.proxy = options.devProxy
+    }
+    // Clear the deprecated field so it doesn't leak into runtimeConfig.
+    options.devProxy = undefined
+
+    // Normalize the resolved proxy option into a config object.
+    const proxyConfig = typeof options.proxy === 'boolean'
+      ? { enabled: options.proxy }
+      : { ...options.proxy }
 
     // Server URL used for proxy target, type gen, devtools (all server-side operations)
     const directusUrl = serverUrl || clientUrl
 
-    const devProxyEnabled = devProxyConfig.enabled ?? nuxtApp.options.dev
-    const devProxyPath = devProxyConfig.path ?? '/directus'
+    const proxyEnabled = proxyConfig.enabled ?? nuxtApp.options.dev
+    const proxyPath = proxyConfig.path ?? '/directus'
     // Use a separate route for WebSocket proxy to avoid conflicts with the HTTP handler
-    const wsProxyPath = devProxyConfig.wsPath ?? `${devProxyPath}-ws`
+    const wsProxyPath = proxyConfig.wsPath ?? `${proxyPath}-ws`
     const wsTarget = joinURL(directusUrl, 'websocket')
 
     // Proxy resolution:
     // - HTTP proxy: works in dev and production (Nitro server handler)
-    // - WebSocket proxy: dev only — the upgrade hook below relies on
+    // - WebSocket proxy: dev only; the upgrade hook below relies on
     //   nuxtApp.server.upgrade, which exists only in the dev orchestrator.
     //
-    // Default (devProxyConfig.enabled === undefined): on in dev, off in prod.
+    // Default (proxyConfig.enabled === undefined): on in dev, off in prod.
     // Explicit `true`: on in both (HTTP only in prod, with a warning).
     // Explicit `false`: off in both.
     const isDev = nuxtApp.options.dev
 
-    if (devProxyEnabled) {
+    if (proxyEnabled) {
       const headerLabel = isDev ? '🌐 Development Proxy Mode Enabled:' : '🌐 Proxy Mode Enabled (production):'
       loggerMessage.push(headerLabel)
-      loggerMessage.push(`  - URL${colors.dim(` ${devProxyPath}`)} proxies ${colors.underline(colors.green(`${directusUrl}`))}`)
+      loggerMessage.push(`  - URL${colors.dim(` ${proxyPath}`)} proxies ${colors.underline(colors.green(`${directusUrl}`))}`)
 
-      // HTTP proxy server handler — works in dev and production builds.
+      // HTTP proxy server handler; works in dev and production builds.
       addServerHandler({
-        route: `${devProxyPath}/**`,
+        route: `${proxyPath}/**`,
         handler: resolver.resolve('./runtime/server/routes/directus'),
       })
 
@@ -422,21 +454,21 @@ export default defineNuxtModule<ModuleOptions>({
         })
       }
       else {
-        loggerMessage.push(`  - ${colors.yellow('WebSocket proxy is disabled in production')} — connect realtime directly to ${colors.dim(`${wsTarget}`)}`, '')
+        loggerMessage.push(`  - ${colors.yellow('WebSocket proxy is disabled in production')}; connect realtime directly to ${colors.dim(`${wsTarget}`)}`, '')
       }
 
-      // Store normalized devProxy config for runtime use.
+      // Store normalized proxy config for runtime use.
       // wsPath is only meaningful when the WS proxy is actually registered (dev),
       // so leave it undefined in production builds.
-      options.devProxy = {
+      options.proxy = {
         enabled: true,
-        path: devProxyPath,
+        path: proxyPath,
         wsPath: isDev ? wsProxyPath : undefined,
       }
     }
     else if (!isDev && directusUrl) {
       loggerMessage.push(`🌐 Production Mode:`, `  - SDK connects directly to ${colors.dim(`${directusUrl}`)}`, '')
-      options.devProxy = false
+      options.proxy = false
     }
 
     // directusUrl/serverDirectusUrl are injected onto options so Nuxt's type
@@ -458,6 +490,11 @@ export default defineNuxtModule<ModuleOptions>({
     delete (nuxtApp.options.runtimeConfig.public[configKey] as any).adminToken
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (nuxtApp.options.runtimeConfig.public[configKey] as any).serverDirectusUrl
+    // Strip the deprecated alias so runtime reads from `proxy` only.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (nuxtApp.options.runtimeConfig.public[configKey] as any).devProxy
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (nuxtApp.options.runtimeConfig[configKey] as any).devProxy
 
     // Register @nuxt/image with Directus provider
     const imageConfig = typeof options.image === 'boolean' ? { enabled: options.image } : options.image
@@ -468,8 +505,8 @@ export default defineNuxtModule<ModuleOptions>({
     if (hasNuxtImage) {
       const { setDefaultProvider, modifiers } = imageConfig || {}
 
-      const imageBaseUrl = devProxyEnabled
-        ? `${devProxyPath}/assets`
+      const imageBaseUrl = proxyEnabled
+        ? `${proxyPath}/assets`
         : useUrl(clientUrl, 'assets')
 
       await registerModule('@nuxt/image', 'image', {

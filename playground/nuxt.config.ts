@@ -19,7 +19,7 @@ export default defineNuxtConfig({
   directus: {
     // url: import.emeta.env.DIRECTUS_URL
     // adminToken: import.meta.env.DIRECTUS_ADMIN_TOKEN
-    devProxy: {
+    proxy: {
       enabled: true,
       path: '/directus',
     },

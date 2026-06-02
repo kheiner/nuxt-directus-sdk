@@ -31,7 +31,7 @@ export default defineConfig({
           { text: 'File Management', link: '/guide/files' },
           { text: 'Visual Editor', link: '/guide/visual-editor' },
           { text: 'Type Generation', link: '/guide/type-generation' },
-          { text: 'Dev Proxy', link: '/guide/dev-proxy' },
+          { text: 'Proxy', link: '/guide/proxy' },
           { text: 'Server-Side Utils', link: '/guide/server-side' },
         ],
       },

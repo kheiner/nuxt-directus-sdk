@@ -65,9 +65,9 @@ await directus.request(updateSingleton('settings', data))
 
 Generate full URLs to your Directus instance. This composable is context-aware:
 
-- **Client**: returns the client URL (or proxy path if `devProxy` is enabled)
+- **Client**: returns the client URL (or proxy path if `proxy` is enabled)
 - **Server (SSR)**: returns the server URL if configured (for Docker/K8s internal networking), otherwise the client URL
-- **Dev proxy**: returns `window.location.origin + proxyPath` on client, or host header-based URL on server
+- **Proxy**: returns `window.location.origin + proxyPath` on client, or host header-based URL on server
 
 **Parameters:**
 - `path?: string` - Optional path to append
@@ -90,7 +90,7 @@ const assetsUrl = useDirectusUrl('assets')
 
 ### `useDirectusOriginUrl(path?)`
 
-Generate URLs to the **public-facing** Directus instance. Unlike `useDirectusUrl`, this always returns the client URL — it ignores both `devProxy` and `serverDirectusUrl`.
+Generate URLs to the **public-facing** Directus instance. Unlike `useDirectusUrl`, this always returns the client URL; it ignores both `proxy` and `serverDirectusUrl`.
 
 Use this when you need the real Directus URL for browser navigation (e.g. SSO redirects, admin links).
 

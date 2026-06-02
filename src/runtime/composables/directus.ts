@@ -23,19 +23,19 @@ function resolveServerUrl(): string {
   return config.directus?.serverDirectusUrl || resolveClientUrl()
 }
 
-// The module writes devProxy as a full object; the generated runtime-config.d.ts
+// The module writes proxy as a full object; the generated runtime-config.d.ts
 // collapses it to boolean. Cast to the actual shape so property access is safe.
-type DevProxyConfig = boolean | { enabled?: boolean, path?: string, wsPath?: string }
+type ProxyConfig = boolean | { enabled?: boolean, path?: string, wsPath?: string }
 
 export function useDirectusUrl(path = ''): string {
   const config = useRuntimeConfig()
 
-  const devProxy = config.public.directus.devProxy as DevProxyConfig
-  const devProxyEnabled = typeof devProxy === 'object' ? devProxy.enabled === true : devProxy === true
+  const proxy = config.public.directus.proxy as ProxyConfig
+  const proxyEnabled = typeof proxy === 'object' ? proxy.enabled === true : proxy === true
 
-  // When devProxy is enabled, use current origin + proxy path
-  if (devProxyEnabled) {
-    const proxyPath = typeof devProxy === 'object' && devProxy.path ? devProxy.path : '/directus'
+  // When the proxy is enabled, use current origin + proxy path
+  if (proxyEnabled) {
+    const proxyPath = typeof proxy === 'object' && proxy.path ? proxy.path : '/directus'
 
     if (import.meta.client) {
       return useUrl(`${window.location.origin}${proxyPath}`, path)
@@ -50,7 +50,7 @@ export function useDirectusUrl(path = ''): string {
     }
   }
 
-  // On server without devProxy, prefer the server URL (for Docker/K8s internal networking)
+  // On server without proxy, prefer the server URL (for Docker/K8s internal networking)
   if (import.meta.server) {
     return useUrl(resolveServerUrl(), path)
   }
@@ -98,17 +98,17 @@ function createDirectusClient() {
   //
   // - Dev with WS proxy: use the proxy path on the current origin.
   // - HTTP proxy on but no WS proxy (production): point realtime directly at
-  //   the real Directus URL — the HTTP proxy can't carry WebSocket upgrades.
+  //   the real Directus URL; the HTTP proxy can't carry WebSocket upgrades.
   // - No proxy: omit, let the SDK default (baseUrl + /websocket).
-  const devProxy = config.public.directus.devProxy as DevProxyConfig
-  const devProxyEnabled = typeof devProxy === 'object' ? devProxy.enabled === true : devProxy === true
-  const devProxyWsPath = typeof devProxy === 'object' ? devProxy.wsPath : undefined
+  const proxy = config.public.directus.proxy as ProxyConfig
+  const proxyEnabled = typeof proxy === 'object' ? proxy.enabled === true : proxy === true
+  const proxyWsPath = typeof proxy === 'object' ? proxy.wsPath : undefined
 
   let realtimeUrl: string | undefined
-  if (devProxyWsPath && import.meta.client) {
-    realtimeUrl = `${window.location.origin}${devProxyWsPath}`
+  if (proxyWsPath && import.meta.client) {
+    realtimeUrl = `${window.location.origin}${proxyWsPath}`
   }
-  else if (devProxyEnabled && import.meta.client) {
+  else if (proxyEnabled && import.meta.client) {
     // Production proxy mode: realtime bypasses the proxy and connects directly.
     const directUrl = resolveClientUrl()
     realtimeUrl = directUrl ? `${directUrl.replace(/^http/, 'ws').replace(/\/$/, '')}/websocket` : undefined
