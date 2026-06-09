@@ -113,6 +113,6 @@ Now that you're set up, explore the features:
 - [File Management](/guide/files) - Upload and transform files
 - [Visual Editor](/guide/visual-editor) - Live preview and inline editing
 - [Type Generation](/guide/type-generation) - Auto-generated types from your Directus schema
-- [Proxy](/guide/proxy) - CORS-free local development
+- [Proxy](/guide/proxy) - Support for cross origin server configurations
 - [Server-Side Utils](/guide/server-side) - Server routes and utilities
 - [Configuration Reference](/api/configuration/) - All configuration options

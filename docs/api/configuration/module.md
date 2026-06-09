@@ -186,8 +186,8 @@ export default defineNuxtConfig({
 })
 ```
 
-::: tip Renamed from `devProxy`
-The option was previously called `devProxy`. The old name still works as an alias but logs a deprecation warning at build time. See the [Proxy guide](/guide/proxy#migration-from-devproxy) for migration details.
+::: tip Renamed from `devProxy` in v6.1
+The option was previously called `devProxy`. From v6.1 the old name still works as an alias but logs a deprecation warning at build time; it will be removed in the next major release. See the [Proxy guide](/guide/proxy#migration-from-devproxy) for migration details.
 :::
 
 #### `devtools`

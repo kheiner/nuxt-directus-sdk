@@ -76,14 +76,14 @@ Generate full URLs to your Directus instance. This composable is context-aware:
 
 ```typescript
 const directusUrl = useDirectusUrl()
-// Client: https://cms.example.com
+// Client: https://directus.example.com
 // Server (with split URL): http://directus:8055
 
 const apiUrl = useDirectusUrl('items/articles')
-// Client: https://cms.example.com/items/articles
+// Client: https://directus.example.com/items/articles
 
 const assetsUrl = useDirectusUrl('assets')
-// Client: https://cms.example.com/assets
+// Client: https://directus.example.com/assets
 ```
 
 ---
@@ -101,10 +101,10 @@ Use this when you need the real Directus URL for browser navigation (e.g. SSO re
 
 ```typescript
 const ssoUrl = useDirectusOriginUrl('/auth/login/google?redirect=...')
-// Always: https://cms.example.com/auth/login/google?redirect=...
+// Always: https://directus.example.com/auth/login/google?redirect=...
 
 const adminUrl = useDirectusOriginUrl('admin')
-// Always: https://cms.example.com/admin
+// Always: https://directus.example.com/admin
 ```
 
 ---

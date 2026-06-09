@@ -1,8 +1,8 @@
 # Proxy
 
-The module can create a proxy at `/directus` that forwards requests from your Nuxt server to Directus. This eliminates CORS issues, handles cookie forwarding for session auth, and (in dev) proxies WebSocket connections for realtime.
+The module can create a proxy path to Directus at a user defined frontend path (defaults to `/directus`). This eliminates CORS issues, handles cookie forwarding for session auth, and (in dev) proxies WebSocket connections for realtime.
 
-::: tip Renamed from `devProxy`
+::: tip Renamed from `devProxy` in v6.1
 The option was originally called `devProxy` because it only worked in development. It now works in production builds too, so the name has been generalised to `proxy`. The old name still works as an alias but logs a deprecation warning. Rename your config at your convenience.
 :::
 
@@ -20,7 +20,7 @@ export default defineNuxtConfig({
 })
 ```
 
-Browser requests that would normally go to `https://your-directus.com/items/posts` instead go to `http://localhost:3000/directus/items/posts` and the Nuxt server forwards them.
+Browser requests that would normally go to `https://directus.example.com/items/posts` instead go to `http://localhost:3000/directus/items/posts` and the Nuxt server forwards them.
 
 The proxy automatically picks up Nuxt's port, including dynamic port changes (3000 → 3001 when you already have a server running).
 
@@ -64,7 +64,7 @@ export default defineNuxtConfig({
 
 Three problems it solves:
 
-1. **CORS.** Your Nuxt dev server is on `http://localhost:3000`. Directus is on `https://your-directus.com`. Without the proxy, every browser request is cross-origin and needs CORS headers configured on Directus. With the proxy, requests are same-origin.
+1. **CORS.** Your Nuxt dev server is on `http://localhost:3000`. Directus is on `https://directus.example.com`. Without the proxy, every browser request is cross-origin and needs CORS headers configured on Directus. With the proxy, requests are same-origin.
 2. **Cookies.** Session-based authentication relies on httpOnly cookies. Cookies are scoped to the domain that sets them, so a `Set-Cookie` from Directus wouldn't be honoured by a browser fetching from `localhost`. The proxy rewrites the cookie domain so the cookie is accepted.
 3. **WebSockets.** Realtime subscriptions use the WebSocket protocol, which has its own handshake and CORS rules. The `wsPath` proxy handles this with cookie forwarding so auth survives the upgrade.
 
@@ -92,20 +92,7 @@ Or disable just the WebSocket proxy by leaving `enabled: true` and setting `wsPa
 
 In production builds the proxy is off by default and all requests go directly to the `client` URL from the browser. This is what most users want: no extra hop, no Nuxt server involvement on every Directus call. For this to work with session auth, cookie domains have to match, either same apex domain or configured correctly. See the [Authentication guide](/guide/authentication) for the cross-domain setup.
 
-### Enabling the proxy in production
-
-Sometimes the direct-from-browser route doesn't work. The most common case is hosting Directus on a different domain than your Nuxt app where you can't (or don't want to) deal with cross-domain cookies. Third-party cookie restrictions in modern browsers make this increasingly fragile, especially in staging environments. Turning the proxy on in production puts the session cookie back on your own origin:
-
-```ts
-export default defineNuxtConfig({
-  directus: {
-    url: process.env.NUXT_PUBLIC_DIRECTUS_URL,
-    proxy: { enabled: true }, // or just `proxy: true`
-  },
-})
-```
-
-With this set, the module registers a Nitro server handler at `/directus/**` in your production build that forwards HTTP requests to Directus, preserving cookies on your own domain.
+Sometimes the direct-from-browser route doesn't work. The most common case is hosting Directus on a different domain than your Nuxt app where you can't (or don't want to) deal with cross-domain cookies. Third-party cookie restrictions in modern browsers make this increasingly fragile, especially in staging environments. Turning the proxy on in production (see [Configuration](#configuration) above) puts the session cookie back on your own origin.
 
 **Trade-offs to know about:**
 
@@ -113,7 +100,7 @@ With this set, the module registers a Nitro server handler at `/directus/**` in 
 - **WebSocket proxy is dev-only.** The realtime proxy uses the Nuxt dev-server's upgrade hook, which doesn't exist in production builds. If you turn the HTTP proxy on in production, realtime connects directly to Directus instead, which means realtime is still subject to the original cross-domain cookie problem if you're using `realtimeAuthMode: 'handshake'` or `'strict'`. For `'public'` realtime (no auth), this is fine.
 - **Serverless caveats.** On platforms like Vercel functions or Netlify functions, the HTTP proxy works (regular request/response). WebSocket proxying wouldn't work even if we could enable it; those runtimes don't hold persistent connections.
 
-If you need realtime with auth in production-with-proxy, the cleanest answer is usually to put Directus on a subdomain of your app (`api.example.com` and `app.example.com`) with `SESSION_COOKIE_DOMAIN=.example.com`, so cookies are shared without proxying.
+If you need realtime with auth in production-with-proxy, the cleanest answer is usually to put Directus on a subdomain of your app (`app.example.com` and `directus.example.com`) with `SESSION_COOKIE_DOMAIN=.example.com`, so cookies are shared without proxying.
 
 ## Client IP & `IP_TRUST_PROXY`
 
@@ -137,17 +124,13 @@ IP_TRUST_PROXY=1
 
 Prefer the hop count (`1`) over a blanket `true`. The SDK proxy already strips the attacker-controllable inbound header and forwards a single clean entry, so trusting one hop gives you the real client IP without re-opening the spoofing hole that `true` is prone to. If you stack another proxy in front of your Nuxt app (e.g. Cloudflare to Nuxt to Directus), increase the count to match.
 
-::: tip Direct mode is unaffected
-This section only applies when the proxy is enabled. With `proxy: false`, browsers talk to Directus directly and it sees the real client IP from the connection itself; `IP_TRUST_PROXY` then only concerns whatever proxy sits in front of Directus.
-:::
-
 ::: warning Resolution is only as trustworthy as your edge
 The proxy resolves the client IP from the request reaching your Nuxt server. If Nuxt is exposed directly to the internet with no trusted edge in front of it, that value can itself be spoofed. Configure your platform / Nitro trust settings so the incoming IP is trustworthy before relying on it downstream.
 :::
 
 ## Migration from `devProxy`
 
-The option was renamed from `devProxy` to `proxy` to reflect that it works in production too. The old name still works as an alias:
+From v6.1 the option was renamed from `devProxy` to `proxy` to reflect that it works in production too. The old name still works as an alias:
 
 ```ts
 // Old (deprecated, still works with a warning)

@@ -69,9 +69,7 @@ export interface ModuleOptions {
   proxy?: ProxyOption
 
   /**
-   * @deprecated Use `proxy` instead. `devProxy` is kept as an alias for
-   * backwards compatibility and will be removed in a future major release.
-   * If both are set, `proxy` wins and `devProxy` is ignored with a warning.
+   * @deprecated Use `proxy` instead. `devProxy` will be removed in the next major release.
    */
   devProxy?: ProxyOption
 
@@ -274,7 +272,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     url: import.meta.env.DIRECTUS_URL ?? '',
-    proxy: undefined, // Resolved in setup based on dev mode and the deprecated `devProxy` alias.
+    proxy: undefined, // Resolved in setup based on dev mode.
     devProxy: undefined,
     adminToken: import.meta.env.DIRECTUS_ADMIN_TOKEN ?? '',
     devtools: true,
