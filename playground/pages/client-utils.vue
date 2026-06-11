@@ -26,7 +26,7 @@ const visualEditor = useDirectusVisualEditor()
         <code class="text-xs bg-elevated px-1.5 py-0.5 rounded">useDirectusUrl(path?)</code>
       </h2>
       <p class="text-sm text-muted mb-3">
-        Returns the context-aware Directus base URL. On the client it uses the configured URL (or <code class="text-xs bg-elevated px-1 py-0.5 rounded">devProxy</code> path in development).
+        Returns the context-aware Directus base URL. On the client it uses the configured URL (or <code class="text-xs bg-elevated px-1 py-0.5 rounded">proxy</code> path in development).
         On the server it prefers <code class="text-xs bg-elevated px-1 py-0.5 rounded">serverDirectusUrl</code> for internal networking (Docker/K8s), falling back to the client URL.
       </p>
       <UFormField
@@ -50,7 +50,7 @@ const visualEditor = useDirectusVisualEditor()
         <code class="text-xs bg-elevated px-1.5 py-0.5 rounded">useDirectusOriginUrl(path?)</code>
       </h2>
       <p class="text-sm text-muted mb-3">
-        Always returns the real public-facing Directus URL, ignoring both <code class="text-xs bg-elevated px-1 py-0.5 rounded">devProxy</code> and <code class="text-xs bg-elevated px-1 py-0.5 rounded">serverDirectusUrl</code>.
+        Always returns the real public-facing Directus URL, ignoring both <code class="text-xs bg-elevated px-1 py-0.5 rounded">proxy</code> and <code class="text-xs bg-elevated px-1 py-0.5 rounded">serverDirectusUrl</code>.
         Use this for SSO redirects and admin links that must point to the actual Directus origin.
       </p>
       <p class="text-sm font-semibold mb-1">
@@ -58,7 +58,7 @@ const visualEditor = useDirectusVisualEditor()
       </p>
       <code class="block bg-elevated border border-default rounded p-3 text-xs wrap-break-word mb-3">{{ resolvedOriginUrl }}</code>
       <p class="text-xs text-muted italic border-l-2 border-default pl-3">
-        In local development with <code>devProxy</code> enabled, <code>useDirectusUrl()</code> returns the proxy path while <code>useDirectusOriginUrl()</code> returns the real Directus URL.
+        In local development with <code>proxy</code> enabled, <code>useDirectusUrl()</code> returns the proxy path while <code>useDirectusOriginUrl()</code> returns the real Directus URL.
         In production without a proxy they will be the same.
       </p>
     </section>

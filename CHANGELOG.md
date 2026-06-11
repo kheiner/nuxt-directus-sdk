@@ -1,5 +1,36 @@
 # Changelog
 
+## v6.0.0...v6.1.0
+
+[compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.0.0...v6.1.0)
+
+### 🚀 Enhancements
+
+- **proxy:** Allow devProxy in production (HTTP only) and harden cookie rewriter ([4fbb251](https://github.com/rolleyio/nuxt-directus-sdk/commit/4fbb251))
+- **proxy:** ⚠️  Rename devProxy option to proxy ([34b0f4b](https://github.com/rolleyio/nuxt-directus-sdk/commit/34b0f4b))
+
+### 🩹 Fixes
+
+- **proxy:** Forward resolved client IP via X-Forwarded-For ([c81c402](https://github.com/rolleyio/nuxt-directus-sdk/commit/c81c402))
+
+### 📖 Documentation
+
+- Add nuxt.care health badge to README ([ccc9c8b](https://github.com/rolleyio/nuxt-directus-sdk/commit/ccc9c8b))
+- Fix nuxt.care badge link to use search query ([91aabe8](https://github.com/rolleyio/nuxt-directus-sdk/commit/91aabe8))
+
+### 🏡 Chore
+
+- **deps:** Bump `@directus/sdk` to v22, `@directus/types` to v16, `@directus/visual-editing` to v2.1. Projects on `@directus/sdk@21.x` should bump alongside this release. ([e489a35](https://github.com/rolleyio/nuxt-directus-sdk/commit/e489a35))
+- **ci:** Publish preview packages via pkg.pr.new ([e9b8387](https://github.com/rolleyio/nuxt-directus-sdk/commit/e9b8387))
+
+#### ⚠️ Breaking Changes
+
+- **proxy:** ⚠️  Rename devProxy option to proxy ([34b0f4b](https://github.com/rolleyio/nuxt-directus-sdk/commit/34b0f4b))
+
+### ❤️ Contributors
+
+- Matthew Rollinson <matt@rolley.io>
+
 ## v6.0.0
 
 [compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.0.0-beta.3...v6.0.0)

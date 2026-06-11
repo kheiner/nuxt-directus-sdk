@@ -56,7 +56,7 @@ describe('useDirectusUrl (client-side)', () => {
   it('returns client URL when no proxy', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -67,7 +67,7 @@ describe('useDirectusUrl (client-side)', () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://cms_directus:8055',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -77,10 +77,10 @@ describe('useDirectusUrl (client-side)', () => {
     expect(result).not.toContain('cms_directus')
   })
 
-  it('with devProxy enabled, uses window.location.origin + proxy path', async () => {
+  it('with proxy enabled, uses window.location.origin + proxy path', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: { enabled: true, path: '/directus' },
+      proxy: { enabled: true, path: '/directus' },
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -92,10 +92,10 @@ describe('useDirectusUrl (client-side)', () => {
     expect(result).not.toContain('public.example.com')
   })
 
-  it('with devProxy enabled, uses default /directus path when not specified', async () => {
+  it('with proxy enabled, uses default /directus path when not specified', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: { enabled: true },
+      proxy: { enabled: true },
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -105,10 +105,10 @@ describe('useDirectusUrl (client-side)', () => {
     expect(result).toContain('/directus')
   })
 
-  it('with devProxy as boolean true, uses proxy path', async () => {
+  it('with proxy as boolean true, uses proxy path', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: true,
+      proxy: true,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -119,11 +119,11 @@ describe('useDirectusUrl (client-side)', () => {
   })
 })
 
-describe('devProxy disabled (client-side)', () => {
-  it('devProxy: false — uses client URL directly', async () => {
+describe('proxy disabled (client-side)', () => {
+  it('proxy: false — uses client URL directly', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -134,10 +134,10 @@ describe('devProxy disabled (client-side)', () => {
     expect(result).not.toContain('/directus/')
   })
 
-  it('devProxy: { enabled: false } — uses client URL directly', async () => {
+  it('proxy: { enabled: false } — uses client URL directly', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
-      devProxy: { enabled: false, path: '/directus' },
+      proxy: { enabled: false, path: '/directus' },
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -147,13 +147,13 @@ describe('devProxy disabled (client-side)', () => {
     expect(result).not.toContain('/directus/')
   })
 
-  it('devProxy: undefined — does NOT activate proxy, uses client URL', async () => {
+  it('proxy: undefined — does NOT activate proxy, uses client URL', async () => {
     mockRuntimeConfig.mockReturnValue({
       public: {
         directus: {
           url: 'https://public.example.com',
           directusUrl: 'https://public.example.com',
-          // devProxy intentionally omitted (undefined)
+          // proxy intentionally omitted (undefined)
         },
       },
       directus: {},
@@ -167,11 +167,11 @@ describe('devProxy disabled (client-side)', () => {
     expect(result).not.toContain('/directus')
   })
 
-  it('devProxy disabled with no serverDirectusUrl — uses client URL', async () => {
+  it('proxy disabled with no serverDirectusUrl — uses client URL', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: undefined,
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -179,12 +179,12 @@ describe('devProxy disabled (client-side)', () => {
   })
 })
 
-describe('devProxy with { client, server } URL (client-side)', () => {
-  it('devProxy enabled — uses proxy path from window.location.origin', async () => {
+describe('proxy with { client, server } URL (client-side)', () => {
+  it('proxy enabled — uses proxy path from window.location.origin', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://internal:8055',
-      devProxy: { enabled: true, path: '/api' },
+      proxy: { enabled: true, path: '/api' },
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -196,11 +196,11 @@ describe('devProxy with { client, server } URL (client-side)', () => {
     expect(result).not.toContain('public.example.com')
   })
 
-  it('devProxy enabled — appends path correctly', async () => {
+  it('proxy enabled — appends path correctly', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://internal:8055',
-      devProxy: { enabled: true, path: '/directus' },
+      proxy: { enabled: true, path: '/directus' },
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -211,11 +211,11 @@ describe('devProxy with { client, server } URL (client-side)', () => {
     expect(result).toContain('/items/posts')
   })
 
-  it('devProxy disabled — uses client URL, never serverDirectusUrl', async () => {
+  it('proxy disabled — uses client URL, never serverDirectusUrl', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://internal:8055',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -226,11 +226,11 @@ describe('devProxy with { client, server } URL (client-side)', () => {
     expect(result).not.toContain(`${MOCK_ORIGIN}/directus`)
   })
 
-  it('useDirectusOriginUrl always returns client URL regardless of devProxy', async () => {
+  it('useDirectusOriginUrl always returns client URL regardless of proxy', async () => {
     setConfig({
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://internal:8055',
-      devProxy: { enabled: true, path: '/directus' },
+      proxy: { enabled: true, path: '/directus' },
     })
 
     const { useDirectusOriginUrl } = await import('../src/runtime/composables/directus')
@@ -247,7 +247,7 @@ describe('simple string URL (client-side)', () => {
     setConfig({
       url: 'https://cms.example.com',
       directusUrl: 'https://cms.example.com',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -258,7 +258,7 @@ describe('simple string URL (client-side)', () => {
     setConfig({
       url: 'https://cms.example.com',
       directusUrl: 'https://cms.example.com',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
@@ -271,7 +271,7 @@ describe('simple string URL (client-side)', () => {
     setConfig({
       url: 'https://cms.example.com',
       directusUrl: 'https://cms.example.com',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl, useDirectusOriginUrl } = await import('../src/runtime/composables/directus')
@@ -296,7 +296,7 @@ describe('url as object { client, server } (client-side)', () => {
       url: { client: 'https://public.example.com', server: 'http://internal:8055' },
       directusUrl: 'https://public.example.com',
       serverDirectusUrl: 'http://internal:8055',
-      devProxy: false,
+      proxy: false,
     })
 
     const { useDirectusUrl } = await import('../src/runtime/composables/directus')
