@@ -61,9 +61,9 @@
     "docs:preview": "vitepress preview docs"
   },
   "peerDependencies": {
-    "@directus/sdk": ">=21.2.2",
-    "@directus/types": ">=15.0.2",
-    "@directus/visual-editing": ">=2.0.0",
+    "@directus/sdk": ">=22.0.0",
+    "@directus/types": ">=16.0.0",
+    "@directus/visual-editing": ">=2.1.0",
     "@nuxt/image": ">=2.0.0"
   },
   "peerDependenciesMeta": {
@@ -84,9 +84,9 @@
     "ufo": "^1.6.3"
   },
   "devDependencies": {
-    "@directus/sdk": "^21.2.2",
-    "@directus/types": "^15.0.2",
-    "@directus/visual-editing": "^2.0.0",
+    "@directus/sdk": "^22.0.0",
+    "@directus/types": "^16.0.0",
+    "@directus/visual-editing": "^2.1.0",
     "@nuxt/devtools": "^3.2.4",
     "@nuxt/eslint-config": "^1.15.2",
     "@nuxt/image": "^2.0.0",
