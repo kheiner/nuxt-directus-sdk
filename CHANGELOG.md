@@ -20,6 +20,7 @@
 
 ### 🏡 Chore
 
+- **deps:** Bump `@directus/sdk` to v22, `@directus/types` to v16, `@directus/visual-editing` to v2.1. Projects on `@directus/sdk@21.x` should bump alongside this release. ([e489a35](https://github.com/rolleyio/nuxt-directus-sdk/commit/e489a35))
 - **ci:** Publish preview packages via pkg.pr.new ([e9b8387](https://github.com/rolleyio/nuxt-directus-sdk/commit/e9b8387))
 
 #### ⚠️ Breaking Changes
