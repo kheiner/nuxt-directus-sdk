@@ -89,7 +89,7 @@ export async function generateTypesFromDirectus(
   const logs: string[] = []
   const client = createDirectus(url).with(rest()).with(staticToken(token))
 
-  let result: [SnapshotCollection[], SnapshotField[], SnapshotRelation[]] | null = null
+  let result: [SnapshotCollection[], SnapshotField[], SnapshotRelation[]]
 
   try {
     const [collections, fields, relations] = await Promise.all([
