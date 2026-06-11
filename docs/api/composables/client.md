@@ -65,9 +65,9 @@ await directus.request(updateSingleton('settings', data))
 
 Generate full URLs to your Directus instance. This composable is context-aware:
 
-- **Client**: returns the client URL (or proxy path if `devProxy` is enabled)
+- **Client**: returns the client URL (or proxy path if `proxy` is enabled)
 - **Server (SSR)**: returns the server URL if configured (for Docker/K8s internal networking), otherwise the client URL
-- **Dev proxy**: returns `window.location.origin + proxyPath` on client, or host header-based URL on server
+- **Proxy**: returns `window.location.origin + proxyPath` on client, or host header-based URL on server
 
 **Parameters:**
 - `path?: string` - Optional path to append
@@ -76,21 +76,21 @@ Generate full URLs to your Directus instance. This composable is context-aware:
 
 ```typescript
 const directusUrl = useDirectusUrl()
-// Client: https://cms.example.com
+// Client: https://directus.example.com
 // Server (with split URL): http://directus:8055
 
 const apiUrl = useDirectusUrl('items/articles')
-// Client: https://cms.example.com/items/articles
+// Client: https://directus.example.com/items/articles
 
 const assetsUrl = useDirectusUrl('assets')
-// Client: https://cms.example.com/assets
+// Client: https://directus.example.com/assets
 ```
 
 ---
 
 ### `useDirectusOriginUrl(path?)`
 
-Generate URLs to the **public-facing** Directus instance. Unlike `useDirectusUrl`, this always returns the client URL — it ignores both `devProxy` and `serverDirectusUrl`.
+Generate URLs to the **public-facing** Directus instance. Unlike `useDirectusUrl`, this always returns the client URL; it ignores both `proxy` and `serverDirectusUrl`.
 
 Use this when you need the real Directus URL for browser navigation (e.g. SSO redirects, admin links).
 
@@ -101,10 +101,10 @@ Use this when you need the real Directus URL for browser navigation (e.g. SSO re
 
 ```typescript
 const ssoUrl = useDirectusOriginUrl('/auth/login/google?redirect=...')
-// Always: https://cms.example.com/auth/login/google?redirect=...
+// Always: https://directus.example.com/auth/login/google?redirect=...
 
 const adminUrl = useDirectusOriginUrl('admin')
-// Always: https://cms.example.com/admin
+// Always: https://directus.example.com/admin
 ```
 
 ---

@@ -44,7 +44,7 @@ export default defineNuxtConfig({
     adminToken: process.env.DIRECTUS_ADMIN_TOKEN,
 
     // Development
-    devProxy: {
+    proxy: {
       enabled: true,
       path: '/directus',
       wsPath: '/directus-ws',
@@ -146,46 +146,49 @@ DIRECTUS_ADMIN_TOKEN=your-admin-token-here
 
 **Security Note:** Never commit admin tokens to version control. Always use environment variables.
 
-### Development Options
+### Proxy Options
 
-#### `devProxy`
+#### `proxy`
 
 - **Type:** `boolean | { enabled?: boolean, path?: string, wsPath?: string }`
 - **Default:** `{ enabled: true, path: '/directus', wsPath: '/directus-ws' }` in dev mode
 - **Default:** `false` in production
 
-Development proxy configuration. When enabled, creates a proxy that forwards requests to your Directus instance, eliminating CORS issues and supporting dynamic ports.
+Proxy configuration. When enabled, creates a Nitro server handler that forwards HTTP requests to your Directus instance, eliminating CORS issues and supporting dynamic ports in development. In production it solves cross-domain cookie scope problems (e.g. login on Vercel where app and Directus are on different domains).
 
 ```typescript
 export default defineNuxtConfig({
   directus: {
     // Simple boolean
-    devProxy: true,
+    proxy: true,
 
     // Or detailed configuration
-    devProxy: {
+    proxy: {
       enabled: true,
       path: '/directus', // HTTP proxy mount path
-      wsPath: '/directus-ws', // WebSocket proxy path (optional)
+      wsPath: '/directus-ws', // WebSocket proxy path (dev only)
     },
   },
 })
 ```
 
 **How it works:**
-- In development: Requests automatically route through the proxy using the current port
-- Supports Nuxt's dynamic port changes (e.g., port 3000 → 3001)
-- In production: Direct connection to Directus URL
-- WebSocket proxy available at `wsPath` for realtime features
+- In development: requests route through the proxy on Nuxt's current port. Supports dynamic port changes (3000 → 3001).
+- In production: off by default. Set `proxy: true` (or `{ enabled: true }`) to enable HTTP proxying.
+- WebSocket proxy at `wsPath` is dev-only. In production, realtime connects directly to Directus.
 
 **Disable proxy:**
 ```typescript
 export default defineNuxtConfig({
   directus: {
-    devProxy: false, // Use direct connection in dev
+    proxy: false, // Use direct connection in dev
   },
 })
 ```
+
+::: tip Renamed from `devProxy` in v6.1
+The option was previously called `devProxy`. From v6.1 the old name still works as an alias but logs a deprecation warning at build time; it will be removed in the next major release. See the [Proxy guide](/guide/proxy#migration-from-devproxy) for migration details.
+:::
 
 #### `devtools`
 
