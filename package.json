@@ -61,9 +61,9 @@
     "docs:preview": "vitepress preview docs"
   },
   "peerDependencies": {
-    "@directus/sdk": ">=22.0.0",
-    "@directus/types": ">=16.0.0",
-    "@directus/visual-editing": ">=2.1.0",
+    "@directus/sdk": ">=21.2.2",
+    "@directus/types": ">=15.0.2",
+    "@directus/visual-editing": ">=2.0.0",
     "@nuxt/image": ">=2.0.0"
   },
   "peerDependenciesMeta": {
