@@ -1,5 +1,33 @@
 # Changelog
 
+## v6.1.2
+
+[compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.1.1...v6.1.2)
+
+### 🩹 Fixes
+
+- **deps:** Lower @directus/sdk peer dep floor to v21.0.0 ([b7f959b](https://github.com/rolleyio/nuxt-directus-sdk/commit/b7f959b))
+
+### ❤️ Contributors
+
+- Matthew Rollinson <matt@rolley.io>
+
+## v6.1.1
+
+[compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.1.0...v6.1.1)
+
+### 🩹 Fixes
+
+- **deps:** Relax @directus/sdk peer dep to v21 or v22 ([a07af5d](https://github.com/rolleyio/nuxt-directus-sdk/commit/a07af5d))
+
+### 📖 Documentation
+
+- Add missing deps bump entry to v6.1.0 changelog ([a762ba8](https://github.com/rolleyio/nuxt-directus-sdk/commit/a762ba8))
+
+### ❤️ Contributors
+
+- Matthew Rollinson <matt@rolley.io>
+
 ## v6.0.0...v6.1.0
 
 [compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.0.0...v6.1.0)
