@@ -40,7 +40,7 @@ export default defineNuxtConfig({
     // Core configuration — simple string
     url: process.env.DIRECTUS_URL,
     // Or split URLs for Docker/K8s:
-    // url: { client: 'https://cms.example.com', server: 'http://directus:8055' },
+    // url: { client: 'https://directus.example.com', server: 'http://directus:8055' },
     adminToken: process.env.DIRECTUS_ADMIN_TOKEN,
 
     // Development
@@ -96,11 +96,11 @@ Your Directus instance URL. Can be a simple string, or an object with separate `
 export default defineNuxtConfig({
   directus: {
     // Simple string — used everywhere
-    url: 'https://your-directus-instance.com',
+    url: 'https://directus.example.com',
 
     // Or split URLs for Docker/K8s
     url: {
-      client: 'https://cms.example.com', // Browser requests
+      client: 'https://directus.example.com', // Browser requests
       server: 'http://directus:8055', // SSR / server-side requests
     },
   },
@@ -110,7 +110,7 @@ export default defineNuxtConfig({
 Or use environment variable (string form only):
 
 ```dotenv
-DIRECTUS_URL=https://your-directus-instance.com
+DIRECTUS_URL=https://directus.example.com
 ```
 
 ::: tip When to use split URLs
