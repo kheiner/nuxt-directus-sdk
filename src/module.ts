@@ -606,7 +606,8 @@ export default defineNuxtModule<ModuleOptions>({
           icon: 'simple-icons:directus',
           view: {
             type: 'iframe',
-            src: useUrl(directusUrl, 'admin'),
+            // Browser must open the public client URL, not an internal Docker/K8s hostname.
+            src: useUrl(clientUrl || directusUrl, 'admin'),
           },
         })
       })
