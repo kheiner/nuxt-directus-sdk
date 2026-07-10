@@ -14,15 +14,6 @@
 - [📚 &nbsp;Documentation](https://www.nuxt-directus-sdk.com)
 - [🛝 &nbsp;Live Playground](https://playground.nuxt-directus-sdk.com)
 
-## Sponsored by
-
-<a href="https://rolley.io" aria-label="Rolley | Bespoke development projects built using Directus, Medusa and Nuxt">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rolleyio/nuxt-directus-sdk/main/docs/public/rolley-dark.svg">
-    <img src="https://raw.githubusercontent.com/rolleyio/nuxt-directus-sdk/main/docs/public/rolley-light.svg" alt="Rolley" width="160">
-  </picture>
-</a>
-
 ## Features
 
 - 🔒 &nbsp;**Session-based authentication** with cross-domain support
@@ -154,3 +145,12 @@ Contributions are welcome. Please target the `next` branch for new features and 
 
 [nuxt-src]: https://img.shields.io/badge/Nuxt-18181B?logo=nuxt.js
 [nuxt-href]: https://nuxt.com
+
+## Sponsored by
+
+<a href="https://rolley.io" aria-label="Rolley | Bespoke development projects built using Directus, Medusa and Nuxt">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rolleyio/nuxt-directus-sdk/main/docs/public/rolley-dark.svg">
+    <img src="https://raw.githubusercontent.com/rolleyio/nuxt-directus-sdk/main/docs/public/rolley-light.svg" alt="Rolley" width="160">
+  </picture>
+</a>
