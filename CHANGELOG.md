@@ -1,5 +1,22 @@
 # Changelog
 
+## v6.1.3
+
+[compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.1.2...v6.1.3)
+
+### 🩹 Fixes
+
+- **proxy:** Strip the configured proxy.path instead of a hardcoded /directus prefix ([c53b48a](https://github.com/rolleyio/nuxt-directus-sdk/commit/c53b48a))
+- **devtools:** Embed Directus admin via client URL ([f701560](https://github.com/rolleyio/nuxt-directus-sdk/commit/f701560))
+
+### 🏡 Chore
+
+- Fix README alert syntax, add LICENSE, standardise example URLs ([97d13a7](https://github.com/rolleyio/nuxt-directus-sdk/commit/97d13a7))
+
+### ❤️ Contributors
+
+- Matthew Rollinson <matt@rolley.io>
+
 ## v6.1.2
 
 [compare changes](https://github.com/rolleyio/nuxt-directus-sdk/compare/v6.1.1...v6.1.2)

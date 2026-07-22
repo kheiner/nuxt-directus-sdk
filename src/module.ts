@@ -44,8 +44,8 @@ export interface ModuleOptions {
    * Can be a string for a single URL, or an object with `client` and `server` for split URLs.
    * Use the object form in Docker/K8s where SSR needs an internal hostname.
    * @default process.env.DIRECTUS_URL
-   * @example 'https://cms.example.com'
-   * @example { client: 'https://cms.example.com', server: 'http://cms_directus:8055' }
+   * @example 'https://directus.example.com'
+   * @example { client: 'https://directus.example.com', server: 'http://directus:8055' }
    */
   url: DirectusUrl
 
@@ -606,7 +606,8 @@ export default defineNuxtModule<ModuleOptions>({
           icon: 'simple-icons:directus',
           view: {
             type: 'iframe',
-            src: useUrl(directusUrl, 'admin'),
+            // Browser must open the public client URL, not an internal Docker/K8s hostname.
+            src: useUrl(clientUrl || directusUrl, 'admin'),
           },
         })
       })
